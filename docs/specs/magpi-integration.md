@@ -171,13 +171,35 @@ Two ways to close the gap, in order of preference:
 
 1. **MT-2.1 (upstream, small, generic):** in `src/core/act.ts`, add
    `target: { role, name, tag, href?, inputType? }` from the resolved control and
-   `input: request.text ?? request.value` to `action`. The ledger already redacts on
-   write. Readable traces benefit every Magpi user, so this fits QD1.
+   `input` (typed text or selected value; `[redacted]` for password fields) to
+   `action`, redacted on write. Readable traces benefit every Magpi user, so this fits
+   QD1. Open as [naiemk/browser-session-agent#82](https://github.com/naiemk/browser-session-agent/pull/82).
 2. **Fallback (no Magpi change):** join each action to the latest observation in
    `payloads.jsonl` before it (same turn or earlier), parse the control line for the
    ref, and read role and name from there. Brittle because it parses rendered text;
    use only until MT-2.1 lands, and mark trajectories built this way with
    `"source.locatorRecovery": "payload-join"`.
+
+### The second trap: Magpi's `role` is not an ARIA role
+
+`perceive.ts` sets `role` to the element's explicit `role` attribute if present, else
+`el.type || tag`. Verified on Magpi fixtures:
+
+| Element | Magpi `role` | ARIA role for `getByRole` |
+| --- | --- | --- |
+| `<input type="text">`, `email`, `search`, `tel`, `url` | `text`, `email`, ... | `textbox` |
+| `<input type="password">` | `password` | none: use `getByLabel` |
+| `<textarea>`, contenteditable | `textbox` | `textbox` |
+| `<select>` | `select-one` / `select-multiple` | `combobox` / `listbox` |
+| `<button>`, `<input type="submit">` | `submit` / `button` / `reset` | `button` |
+| `<input type="checkbox">` / `radio` | `checkbox` / `radio` | `checkbox` / `radio` |
+| `<a href>` | `a` | `link` |
+| explicit `role="tab"` etc. | `tab` | same |
+
+`name` is also Magpi's choice, not always the accessible name: `aria-label`, else label
+text, else the `name` attribute, else placeholder, else text content. So the trajectory
+reader must map `tag` + `inputType` + `role` to an ARIA role with the table above, and
+treat `name` as a candidate that acceptance proves or the repair loop fixes.
 
 Also note `Control` has no `data-testid`. If testid targets prove necessary (wallet
 flows in M3), adding `testId` to `Control` is a second candidate upstream change.
@@ -234,4 +256,6 @@ decides and records it in `decisions.md`.
 
 ## Corrections
 
-None yet.
+- 2026-10-12: `Control.role` is Magpi's snapshot role (explicit `role` attribute, else
+  input type or tag), not an ARIA role. Added the mapping table above; found while
+  implementing MT-2.1.

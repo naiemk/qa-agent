@@ -11,6 +11,12 @@ before any story here.
 ### MT-2.1 Upstream Magpi: the ledger records what was acted on
 - [ ] done
 
+2026-10-12: implemented in
+[naiemk/browser-session-agent#82](https://github.com/naiemk/browser-session-agent/pull/82)
+(from the `naiemy` fork; the agent account has no push access to Magpi). Tick when
+merged and this repo's dependency includes it. Finding: `target.role` is Magpi's
+snapshot role, not ARIA; see magpi-integration.md "The second trap".
+
 **Outcome.** In `browser-session-agent`, each `action` / `failure` ledger event carries
 the target control's role, name, tag (and href / inputType when present) and the typed
 or selected input, so any Magpi trace says what was clicked, not just `e12`.
