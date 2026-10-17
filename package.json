@@ -1,0 +1,28 @@
+{
+  "name": "magpi-test",
+  "version": "0.1.0",
+  "description": "Autonomous QA engineer on top of Magpi: discovers flows, leaves deterministic Playwright tests",
+  "type": "module",
+  "license": "GPL-3.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "magpi-test": "./bin/magpi-test.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
+    "test": "tsx --test --test-concurrency=1 --test-timeout=120000 tests/unit/*.test.ts tests/integration/*.test.ts",
+    "precommit": "npm run typecheck && npm test",
+    "cli": "node bin/magpi-test.mjs"
+  },
+  "dependencies": {
+    "@naiemk/magpi": "file:../browser-session-agent",
+    "@playwright/test": "1.62.1",
+    "tsx": "^4.23.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
