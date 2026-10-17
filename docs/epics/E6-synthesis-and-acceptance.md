@@ -1,7 +1,9 @@
 # E6 Synthesis and acceptance
 
 **Outcome.** A Trajectory becomes a plain Playwright spec through deterministic code, and
-the spec is kept only if it passes 3 times from a fresh stack with no AI.
+the spec is kept only if it passes 3 times from a fresh stack (or, in attach mode, after
+a reset or with self-isolating data) with no AI. Every Scenario is also rendered as a
+manual test case a human can review and feed back in.
 
 **Milestone.** M1, day 1 afternoon (MT-6.1 to 6.3, 6.5) and day 2 (MT-6.4). Spec:
 [specs/test-synthesis.md](../specs/test-synthesis.md).
@@ -117,5 +119,53 @@ network calls beyond the app under test.
   snapshot in `npm test`.
 - Tests with violating fixtures (imports `@naiemk/magpi`, uses `fetch(`, reads
   `OPENROUTER_API_KEY`) all fail the guard.
+
+**Questions.**
+
+---
+
+### MT-6.6 Acceptance in attach mode
+- [ ] done
+
+**Outcome.** Acceptance works against an environment the QA CI job owns: reset before
+each replay when offered, otherwise only self-isolating specs are accepted (QD15).
+
+**Depends on.** MT-6.3, MT-1.5.
+**Touches.** `src/accept/run.ts`, `src/accept/isolation.ts`, `src/synth/config.ts`,
+`tests/unit/isolation.test.ts`, `tests/integration/accept-attach.test.ts`.
+
+**Done when.**
+- In attach mode the generated config has no `webServer` and reads
+  `MAGPI_TEST_BASE_URL` for `use.baseURL` (snapshot test).
+- Runs the attach command in [test-synthesis.md](../specs/test-synthesis.md) 3 times,
+  calling `reset()` before each run when present; a failing reset is `environment`.
+- Without reset: `checkIsolation(trajectory)` rejects any data-creating `fill` whose
+  value is not `unique`, and any count/empty-state/first-row assertion; rejected specs
+  go to repair as `criteria` (unit tests for each rule).
+- Integration test: a fixture app with an in-memory list; a spec that asserts "list is
+  empty" is rejected without reset and accepted with a reset command that clears it.
+
+**Questions.**
+
+---
+
+### MT-6.7 Manual test renderer
+- [ ] done
+
+**Outcome.** After any run, `magpi-tests/manual/<area>.md` lists every Scenario as a
+manual test case in the guided format, with its automation status (QD16).
+
+**Depends on.** MT-4.1, MT-6.3.
+**Touches.** `src/manual/render.ts`, `src/manual/index.ts`, `tests/unit/manual.test.ts`.
+
+**Done when.**
+- Pure and deterministic (no model); one file per area, cases ordered by priority then
+  id; snapshot test.
+- Each case has the guided headings (title, area, start, priority, Preconditions, Steps,
+  Expected) plus one `status:` line: `automated (specs/<id>.spec.ts)`, `quarantined
+  (<suspected cause>)`, `needs-fixture (<names>)`, or `pending`.
+- Round trip: render a case, strip the status line, parse with the MT-4.1 parser, get
+  an equal Scenario (minus run fields) (test over every fixture scenario).
+- `magpi-test run` and `accept` re-render after they finish.
 
 **Questions.**

@@ -14,9 +14,9 @@ answer, if any. Update the answer column when a story settles one, and link the 
 | 7 | How to infer semantic assertions? | E4, E5 | M1: criteria from human "Expected" or from what an explore pass recorded as proof, compiled to predicates before the run. |
 | 8 | How does a generated test validate itself before acceptance? | E6 | 3/3 fresh-stack replays (QD6). |
 | 9 | How to expose fixtures without coupling Magpi to one app? | E9 | M3. M1 skips fixture flows. |
-| 10 | How should repository info influence discovery without copying tests? | E3 | Static scan of routes and docs; answer key enforced in code (QD9). |
+| 10 | How should repository info influence discovery without copying tests? | E3 | A QA brief from the repo's docs or the user's agent (QD14), plus a static scan of routes and docs; answer key enforced in code (QD9). |
 | 11 | Cheapest model per role? | E12 | Not in M1. Record tokens per accepted spec to inform it. |
 | 12 | When is a stronger model needed? | E12 | M1: only Magpi's coach (its own pin) and the fallback coach. |
-| 13 | How does a PR trigger only relevant exploration? | E10 | M4. |
+| 13 | How does a PR trigger only relevant exploration? | E10 | M1: source links on the app map and a report-only `impact` (QD17, MT-10.1). Acting on it is M4. |
 | 14 | What open-source ideas/code are reusable under compatible licenses? | MT-0.1 | Hercules is AGPL: ideas only (QD10). Rest pending. |
 | 15 | What stays outside the MVP? | roadmap | See roadmap "M1" and "Not on the roadmap". |

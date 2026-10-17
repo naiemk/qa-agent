@@ -49,7 +49,7 @@ to Playwright `getByRole`, `getByLabel`, `getByPlaceholder`, `getByText`, `getBy
 and the first four already exist as Magpi page-plan targets (`src/plan/types.ts`).
 No CSS, no XPath, no Magpi `data-core-ref` in generated code.
 
-## QD6. Acceptance means 3 green replays from a fresh stack — accepted
+## QD6. Acceptance means 3 green replays from a fresh stack — accepted (start mode only; attach mode: see QD15)
 
 `CI=1 npx playwright test --config magpi-tests/playwright.config.ts <spec>
 --repeat-each=3 --retries=0 --workers=1`. `CI=1` makes onchain-invoice's `webServer`
@@ -68,7 +68,7 @@ quarantine, not acceptance.
 Committing `state/` is how M2 will avoid rediscovery. Hand-written scenarios live in
 `<target>/magpi-tests/scenarios/*.md`.
 
-## QD8. The target supplies startup; Magpi Test does not build environments in M1 — accepted
+## QD8. The target supplies startup; Magpi Test does not build environments in M1 — superseded in part by QD11
 
 The target manifest names start commands and readiness URLs. If the target already
 declares Playwright `webServer` entries, the manifest may point to that config instead.
@@ -84,3 +84,69 @@ This repo is GPL-3.0. Magpi is MIT (fine to depend on). TestZeus Hercules is AGP
 study, never copy. Emitted test files go into other people's repos, so emitter templates
 must stay trivial boilerplate. Revisit the repo license, or add an explicit exception
 for generated output, before any external user.
+
+## QD11. Attach mode is the primary way to get an environment — accepted (2026-10-16)
+
+The target's own QA CI job brings the app up in a simulated environment and hands Magpi
+Test an environment contract (`MAGPI_TEST_BASE_URL`, optional `MAGPI_TEST_READY_URL`,
+`MAGPI_TEST_RESET_CMD`, `MAGPI_TEST_ENV_KIND`). Magpi Test checks readiness and never
+starts or provisions anything. QD8's `webServer` / `processes` start stays as a
+local-dev convenience (`start` in the manifest), no longer the default.
+Why: real teams already own how their app comes up in CI; owning it ourselves is the
+expensive, app-specific part we do not want.
+Reopen if: most early users have no CI-provided environment at all.
+
+## QD12. `policy: auto` is allowed on listed hosts, not only localhost — accepted (2026-10-16)
+
+The manifest lists `allowedHosts`. `auto` is allowed when the base URL host is
+localhost/127.0.0.1 or in `allowedHosts`, and `MAGPI_TEST_ENV_KIND` is `simulated`.
+With `ENV_KIND=shared`, exploration runs with lenses that never submit destructive
+actions, and `auto` is refused.
+Why: a CI-provided environment is often a container hostname or preview URL.
+
+## QD13. Trajectory JSON is the test script; `.spec.ts` is a build artifact — accepted (2026-10-16)
+
+There is no new DSL in the MVP. The hard-coded, AI-free test is the Trajectory JSON
+(QD4). The emitted Playwright spec is committed so plain `npx playwright test` works,
+but it is never edited by hand or by a model: change the Trajectory and re-emit. The
+human-editable form of a test is the manual test case (QD16).
+Reopen if: users want to hand-edit tests and the manual format does not cover it.
+
+## QD14. Codebase understanding comes from a QA brief — accepted (2026-10-16)
+
+`<target>/magpi-tests/qa-brief.md` with fixed headings. `magpi-test init` builds it by
+condensing the repo's existing agent and docs files (`AGENTS.md`, `CLAUDE.md`, `QA.md`,
+`README*`, `.cursor/rules/**`, `docs/**`) through the answer-key guard. If they are too
+thin, it prints a prompt for the user's own coding agent to write the brief, exits 3,
+and does nothing else. Discovery treats the brief as hints the static scan or live
+survey must confirm.
+Why: the user's coding agent already understands their repo better and cheaper than we
+can; the repo's own docs are the next best source.
+Reopen if: briefs written by user agents leak answer-key content or are routinely wrong.
+
+## QD15. Acceptance under attach: reset if offered, otherwise self-isolating data — accepted (2026-10-16)
+
+Still 3/3 green with `--retries=0`. If `MAGPI_TEST_RESET_CMD` is set, it runs before
+each replay. If not, all replays share the live environment and a spec is accepted
+only if every value it creates is a `unique` value (run-unique suffix) and its
+assertions do not depend on pre-existing counts or lists. Amends QD6 for attach mode.
+Why: we cannot restart a stack we do not own, and requiring every CI to expose a reset
+raises the bar to adopt.
+
+## QD16. Manual test cases are rendered from Scenarios in the guided format — accepted (2026-10-16)
+
+After a run, `magpi-tests/manual/<area>.md` holds one case per Scenario, rendered
+deterministically (no model) in the same markdown format guided scenarios use, plus a
+status line. A human-corrected case can be moved to `scenarios/` and becomes a guided
+input unchanged.
+Why: the manual cases are what a QA lead reviews, and the round trip makes review
+produce tests instead of comments.
+
+## QD17. Site-map nodes link to source files — accepted (2026-10-16)
+
+Every app-map area and critical path carries `sourceFiles`, and every accepted spec
+records the critical path it covers. `magpi-test impact --base <ref>` maps a git diff
+to areas, specs to re-run, and areas to re-explore, deterministically. It reports only
+in M1; acting on it is M4.
+Why: "we know what to test when your code changes" is the pitch, and it needs this
+data from the first run.

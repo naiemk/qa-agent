@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | [product-brief.md](product-brief.md) | The original brief. Source of intent. | Frozen. Disagreements go into `decisions.md`. |
 | [roadmap.md](roadmap.md) | Milestones, order, gates, current focus. | Living. Tick in place; add dated notes. |
+| [mvp-gap-plan.md](mvp-gap-plan.md) | Why M1 changed on 2026-10-16 (CI-provided environment, QA brief, manual cases, source links). | Record. Not updated further. |
 | [decisions.md](decisions.md) | Decisions with the evidence that settled them. | Append only. Supersede, never delete. |
 | [epics/](epics/README.md) | Epics, each with stories and checkable "Done when" lists. | Living. Stories are the unit of work. |
 | [specs/](specs/README.md) | What the product is and how it works, as far as we know. | Grows as we learn. Starts vague on purpose. |

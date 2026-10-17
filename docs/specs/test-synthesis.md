@@ -119,6 +119,10 @@ defined, use `fileURLToPath(new URL("..", import.meta.url))`; MT-6.2 checks whic
 If the target has no Playwright config, emit a standalone config with `baseURL` and
 `webServer` built from the manifest's `processes`.
 
+In attach mode the generated config drops `webServer` entirely and sets
+`use.baseURL: process.env.MAGPI_TEST_BASE_URL ?? "<manifest baseURL>"`, so the same
+specs replay in the QA CI job and locally.
+
 ## Acceptance (MT-6.3)
 
 ```bash
@@ -138,6 +142,30 @@ CI=1 npx playwright test --config magpi-tests/playwright.config.ts \
   the batch: the next specs would fail for the same reason.
 - To save time, acceptance may batch several pending specs in one Playwright
   invocation; a spec is accepted only if all 3 of its repeats pass.
+
+### Acceptance in attach mode (MT-6.6, QD15)
+
+When the manifest uses `start: { attach: {} }` there is no stack to restart:
+
+```bash
+MAGPI_TEST_BASE_URL=... npx playwright test --config magpi-tests/playwright.config.ts \
+  magpi-tests/specs/<id>.spec.ts --retries=0 --workers=1 --reporter=json
+```
+
+run 3 times in a row (not `--repeat-each`), with `MAGPI_TEST_RESET_CMD` before each
+run when it is set. Without a reset command, a spec is accepted only if:
+
+- every `fill` value that creates data is a `unique` value (run-unique suffix), and
+- no assertion depends on a count or list that earlier runs could have grown
+  (`count`, "empty state", "first row"); such assertions fail the isolation check
+  before replay and go to repair as `criteria`.
+
+A reset command that exits non-zero is an `environment` failure and stops the batch.
+
+### Source of truth (QD13)
+
+The Trajectory is the test. The spec file is regenerated from it on every acceptance
+and carries a header comment saying so. A hand edit to a spec is overwritten.
 
 ## Repair loop (MT-6.4)
 
