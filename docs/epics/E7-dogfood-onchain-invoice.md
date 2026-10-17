@@ -12,7 +12,9 @@ Work in a branch of `naiemk/onchain-invoice` for anything written there
 ---
 
 ### MT-7.1 onchain-invoice manifest
-- [ ] done
+- [x] done
+
+> 2026-10-17: manifest at `examples/onchain-invoice/magpi-test.json`; copied into onchain-invoice `magpi-tests/` locally, not committed there.
 
 **Outcome.** `onchain-invoice/magpi-tests/magpi-test.json` exists and
 the QA CI job (MT-7.5) or, locally, `startStack` can bring the app up for it.

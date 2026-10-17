@@ -10,7 +10,7 @@ for tests.
 ---
 
 ### MT-1.1 Scaffold the package
-- [ ] done
+- [x] done
 
 **Outcome.** `npm run precommit` works on an empty-but-real package that mirrors Magpi's
 conventions.
@@ -41,7 +41,7 @@ conventions.
 ---
 
 ### MT-1.2 Target manifest and answer-key guard
-- [ ] done
+- [x] done
 
 **Outcome.** `loadManifest(targetDir)` returns a validated manifest, and `src/files/`
 is the only way to read target files, refusing answer-key paths.
@@ -107,7 +107,7 @@ cleanly, using the target's own Playwright `webServer` entries or explicit proce
 ---
 
 ### MT-1.4 Model client port
-- [ ] done
+- [x] done
 
 **Outcome.** Magpi Test's own model calls go through one small interface with an
 OpenRouter adapter and a scripted fake for tests.
@@ -137,7 +137,7 @@ OpenRouter adapter and a scripted fake for tests.
 ---
 
 ### MT-1.5 Attach mode (environment contract)
-- [ ] done
+- [x] done
 
 **Outcome.** `attachEnv(manifest)` returns the effective base URL, a readiness check,
 and an optional `reset()`, from the environment contract a QA CI job sets. Nothing is

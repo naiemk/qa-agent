@@ -11,7 +11,7 @@ answer key.
 ---
 
 ### MT-3.0 QA brief: format, ingest, and agent prompt
-- [ ] done
+- [x] done
 
 **Outcome.** `magpi-test init` leaves a valid `magpi-tests/qa-brief.md`, built from the
 repo's existing agent and docs files, or prints a ready-to-paste prompt for the user's
@@ -46,7 +46,7 @@ coding agent and exits 3 (QD14).
 ---
 
 ### MT-3.1 Static scan
-- [ ] done
+- [x] done
 
 **Outcome.** `staticScan(files)` returns routes, docs headings, helper exports, and
 locator hints from source, deterministically, with no browser and no model.
@@ -77,7 +77,9 @@ locator hints from source, deterministically, with no browser and no model.
 ---
 
 ### MT-3.2 Live surface survey
-- [ ] done
+- [x] done
+
+> 2026-10-17: plain Playwright, zero tokens (QD19).
 
 **Outcome.** `liveSurvey(stack, scan)` visits each parameter-free route and records
 what the page is and what it advertises, without submitting anything.
@@ -106,7 +108,9 @@ what the page is and what it advertises, without submitting anything.
 ---
 
 ### MT-3.3 App map and critical paths
-- [ ] done
+- [x] done
+
+> 2026-10-17: candidate scenarios are drafted per pass in explore (QD18) rather than seeded with empty criteria here.
 
 **Outcome.** `buildAppMap(scan, survey, model)` writes `state/app-map.json` with areas
 and ranked critical paths, and seeds candidate scenarios.

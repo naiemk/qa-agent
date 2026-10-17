@@ -11,7 +11,7 @@ manual test case a human can review and feed back in.
 ---
 
 ### MT-6.1 Playwright emitter
-- [ ] done
+- [x] done
 
 **Outcome.** `emitSpec(trajectory)` returns spec source exactly as described in the spec.
 
@@ -35,7 +35,7 @@ manual test case a human can review and feed back in.
 ---
 
 ### MT-6.2 Generated Playwright config
-- [ ] done
+- [x] done
 
 **Outcome.** `magpi-tests/playwright.config.ts` extends the target's config, points at
 `specs/`, pins locale, and fixes `webServer.cwd`.
@@ -56,7 +56,7 @@ manual test case a human can review and feed back in.
 ---
 
 ### MT-6.3 Acceptance runner
-- [ ] done
+- [x] done
 
 **Outcome.** `accept(pendingSpecs)` runs the acceptance command, parses results, and
 moves specs to `specs/` or to quarantine.
@@ -81,7 +81,7 @@ moves specs to `specs/` or to quarantine.
 ---
 
 ### MT-6.4 Repair loop
-- [ ] done
+- [x] done
 
 **Outcome.** Locator and assertion failures get up to 2 model-proposed edits to the
 Trajectory, then re-emit and re-accept; otherwise quarantine with a suspected cause.
@@ -106,7 +106,7 @@ Trajectory, then re-emit and re-accept; otherwise quarantine with a suspected ca
 ---
 
 ### MT-6.5 No-AI guard
-- [ ] done
+- [x] done
 
 **Outcome.** A check that fails if a generated spec could need Magpi, a model, or
 network calls beyond the app under test.
@@ -125,7 +125,7 @@ network calls beyond the app under test.
 ---
 
 ### MT-6.6 Acceptance in attach mode
-- [ ] done
+- [x] done
 
 **Outcome.** Acceptance works against an environment the QA CI job owns: reset before
 each replay when offered, otherwise only self-isolating specs are accepted (QD15).
@@ -150,7 +150,7 @@ each replay when offered, otherwise only self-isolating specs are accepted (QD15
 ---
 
 ### MT-6.7 Manual test renderer
-- [ ] done
+- [x] done
 
 **Outcome.** After any run, `magpi-tests/manual/<area>.md` lists every Scenario as a
 manual test case in the guided format, with its automation status (QD16).

@@ -45,6 +45,13 @@ For acceptance, stop the exploration stack and run with `CI=1` so Playwright sta
 fresh one (QD6). The Hardhat chain state therefore resets between exploration and
 acceptance, which is the "clean enough state" we want.
 
+### Local run notes (2026-10-17)
+
+- `better-sqlite3` in `node_modules` was built for Node 24; under Node 26 the API exits
+  with `ERR_DLOPEN_FAILED`. Start the stack with Node 24 on `PATH`
+  (`examples/onchain-invoice/start-stack.sh` works the same in CI on Node 24).
+- `npm run commerce:build` must run first; `boot.mjs` starts `commerce-dist/`.
+
 ### QA CI job (attach mode, MT-7.5)
 
 The primary path from 2026-10-16 (QD11). A new workflow

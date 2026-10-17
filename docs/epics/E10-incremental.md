@@ -15,7 +15,7 @@ Candidate stories (M4):
 ---
 
 ### MT-10.1 `magpi-test impact` (report only, M1 stretch)
-- [ ] done
+- [x] done
 
 **Outcome.** `magpi-test impact --base <ref>` says which accepted specs to re-run and
 which areas to re-explore for a diff, with no model and no browser (QD17).

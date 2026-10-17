@@ -150,3 +150,22 @@ to areas, specs to re-run, and areas to re-explore, deterministically. It report
 in M1; acting on it is M4.
 Why: "we know what to test when your code changes" is the pitch, and it needs this
 data from the first run.
+
+## QD18. M1 explore drafts one scenario per pass and runs it bounded — proposed (2026-10-17)
+
+For each critical path × lens, one cheap model call writes a candidate Scenario (steps,
+expected, criteria) from what the start page advertises. The criteria pass the
+trivial-truth check, then the scenario goes through the same bounded-run pipeline as
+guided input. Run records say `coachedBy: "none"`. The coached `magpie` parent path
+(MT-2.3, MT-5.2) and pass harvest (MT-5.3) are not built yet.
+Why: it keeps every test on fixed, external criteria (invariant 5) with one code path,
+and it does not depend on the unverified unattended `magpie -p` loop (roadmap risk 1).
+Reopen when: MT-0.2's parent-path check passes; then a coached pass replaces the
+drafting call and its findings feed the same pipeline.
+
+## QD19. The live survey is plain Playwright — accepted (2026-10-17)
+
+MT-3.2 visits parameter-free routes with Playwright, reads headings, links, forms,
+buttons and fields in the page, follows home-page links one level, and blocks non-GET
+document requests. No Magpi run and no tokens. `surveyAffordances` stays internal to
+Magpi; revisit only if the survey misses things Magpi's perception would catch.

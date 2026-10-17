@@ -1,0 +1,74 @@
+# QA CI job for onchain-invoice (MT-7.5). Copy to .github/workflows/qa-agent.yml in the
+# onchain-invoice repo. The job owns the environment; magpi-test only attaches (QD11).
+name: QA agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_minutes:
+        description: "Time budget for the run"
+        default: "45"
+
+jobs:
+  qa-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: naiemk/qa-agent
+          path: .qa-agent
+      - uses: actions/checkout@v4
+        with:
+          repository: naiemk/browser-session-agent
+          path: browser-session-agent
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install target
+        run: |
+          npm ci
+          npm run commerce:build
+          npx playwright install --with-deps chromium
+
+      - name: Install magpi-test
+        run: |
+          # .qa-agent depends on file:../browser-session-agent, i.e. the checkout above.
+          (cd browser-session-agent && npm ci)
+          (cd .qa-agent && npm ci)
+
+      - name: Start the simulated stack
+        run: |
+          mkdir -p magpi-tests/state/logs
+          nohup .qa-agent/examples/onchain-invoice/start-stack.sh "$PWD" > magpi-tests/state/logs/stack.log 2>&1 &
+          for i in $(seq 1 300); do curl -sf http://localhost:5173/ >/dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:8080/api/health
+
+      - name: Run magpi-test
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MAGPI_TEST_BASE_URL: http://localhost:5173
+          MAGPI_TEST_READY_URL: http://127.0.0.1:8080/api/health
+        run: |
+          test -f magpi-tests/magpi-test.json || cp .qa-agent/examples/onchain-invoice/magpi-test.json magpi-tests/
+          node .qa-agent/bin/magpi-test.mjs run --target . --max-minutes "${{ inputs.max_minutes }}" --max-tokens 3000000
+
+      - name: Replay accepted specs with no provider key
+        if: always()
+        env:
+          MAGPI_TEST_BASE_URL: http://localhost:5173
+        run: |
+          if ls magpi-tests/specs/*.spec.ts >/dev/null 2>&1; then
+            npx playwright test --config magpi-tests/playwright.config.ts --retries=0
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: magpi-tests
+          path: |
+            magpi-tests/
+            !magpi-tests/state/magpi-home/

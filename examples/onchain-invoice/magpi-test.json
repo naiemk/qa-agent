@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "name": "onchain-invoice",
+  "baseURL": "http://localhost:5173",
+  "start": { "attach": {} },
+  "read": {
+    "include": ["README.md", "AGENTS.md", "docs/**/*.md", "ui/src/**/*.{ts,tsx}", "ui/e2e/helpers/**"],
+    "answerKey": ["ui/e2e/*.spec.ts", "system-tests/tests/**"]
+  },
+  "policy": "auto",
+  "locale": "en-US"
+}

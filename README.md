@@ -1,21 +1,49 @@
 # qa-agent (Magpi Test)
 
 An autonomous QA engineer built on [Magpi](https://github.com/naiemk/browser-session-agent).
-Point it at a project. It reads the codebase, starts the app with the project's own
-scripts, finds the UI and the critical paths, explores them like a QA engineer, and
-leaves behind ordinary Playwright tests.
+Point it at a running app and its codebase. It builds a QA brief from the repo's own docs,
+maps the UI and critical paths back to source files, explores them like a QA engineer,
+and leaves behind manual test cases plus ordinary Playwright tests.
 
 AI is used to discover and author tests. AI is not needed to run them: accepted tests
 replay with `npx playwright test`, no Magpi process, no model, no tokens.
 
-Magpi stays a general browser agent. This repo is the testing layer on top of it.
+## Quick start
 
-## Status
+```bash
+# 1. Next to a checkout of naiemk/browser-session-agent (the Magpi engine):
+npm install
 
-Pre-code. The first milestone (M1) is a two-day MVP, dogfooded on
-[onchain-invoice](https://github.com/naiemk/onchain-invoice).
+# 2. A model key for Magpi Test and Magpi (kept out of git):
+echo 'OPENROUTER_API_KEY=sk-or-...' > .env
 
-## Where to start
+# 3. Start your app however your QA CI does it, then attach:
+export MAGPI_TEST_BASE_URL=http://localhost:5173
+export MAGPI_TEST_READY_URL=http://127.0.0.1:8080/api/health   # optional
+node bin/magpi-test.mjs run --target ../your-app --max-minutes 30
+```
+
+The target needs `magpi-tests/magpi-test.json` (see
+[docs/specs/target-manifest.md](docs/specs/target-manifest.md)). Results land in the target:
+
+| Path | What |
+| --- | --- |
+| `magpi-tests/qa-brief.md` | What the agent believes the product is. Review and commit it. |
+| `magpi-tests/manual/<area>.md` | Manual test cases with automation status. Move one to `scenarios/` to automate it. |
+| `magpi-tests/specs/*.spec.ts` | Accepted Playwright specs (passed 3× with `--retries=0`, no AI). |
+| `magpi-tests/state/report.md` | What was found, accepted, quarantined, skipped; tokens per spec. |
+| `magpi-tests/state/app-map.json` | Areas and critical paths, each linked to source files. |
+
+`magpi-test impact --target ../your-app --base main` maps a diff to the areas, specs to
+re-run, and areas to re-explore. The onchain-invoice setup (stack script, manifest, CI
+workflow) is in [examples/onchain-invoice/](examples/onchain-invoice/).
+
+## Development
+
+`npm run precommit` (typecheck + unit and integration tests). Tests never call a model:
+they use the fake model client and a stubbed Magpi process.
+
+## Where to start reading
 
 | You want | Read |
 | --- | --- |

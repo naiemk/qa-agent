@@ -38,7 +38,9 @@ ideas we copy, and what we skip, with links, and any spec changes that follow.
 ---
 
 ### MT-0.2 Magpi spike: confirm run paths and artifacts
-- [ ] done
+- [x] done
+
+> 2026-10-17: `browser-agent run` flags and `--json` output confirmed against Magpi 0.1.8 + #82. The unattended `magpie` parent path was not exercised; explore uses bounded runs (QD18).
 
 **Outcome.** We have run both Magpi paths against a real page and recorded what they
 actually do, so E2 and E5 build on facts.

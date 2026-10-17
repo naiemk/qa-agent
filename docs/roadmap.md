@@ -60,6 +60,12 @@ must fit in the two days.
 
 ### Exit checks
 
+> 2026-10-17: the pipeline is implemented and passes offline end to end (fake model,
+> stubbed Magpi, real Playwright acceptance against a fixture app). The onchain-invoice
+> stack starts locally with `examples/onchain-invoice/start-stack.sh` under Node 24.1.
+> The live exit checks below wait on a run with an OpenRouter key. Not built yet: MT-0.1,
+> MT-1.3 (optional), MT-2.3 and MT-5.2 (coached passes; see QD18), MT-5.3 (harvest).
+
 - [ ] `magpi-test discover` on onchain-invoice writes an app map with areas and ranked critical paths, without reading answer-key files (MT-3.3, MT-1.2 guard test).
 - [ ] At least 3 guided scenarios become accepted specs (MT-7.2).
 - [ ] At least 5 explored specs accepted, from at least 2 lenses, including at least one edge case (validation error, empty state, or invalid link) (MT-7.3).
@@ -80,21 +86,21 @@ Lanes can run in parallel (separate agents). Within a lane, order matters.
 
 | Lane | Stories |
 | --- | --- |
-| A | [ ] MT-0.2 Magpi spike: confirm the run paths and artifacts before anyone builds on them |
+| A | [x] MT-0.2 Magpi spike: confirm the run paths and artifacts before anyone builds on them |
 | B | [ ] MT-0.1 Prior-art reuse note (timebox 2 hours) |
-| C | [ ] MT-1.1 Scaffold → [ ] MT-1.4 Model client port |
-| E | [ ] MT-3.0 QA brief format and parser (ingest and prompt land after MT-1.2 / MT-1.4) |
-| D | [ ] MT-2.1 Upstream Magpi: ledger records action target and input (PR on browser-session-agent) |
+| C | [x] MT-1.1 Scaffold → [x] MT-1.4 Model client port |
+| E | [x] MT-3.0 QA brief format and parser (ingest and prompt land after MT-1.2 / MT-1.4) |
+| D | [x] MT-2.1 Upstream Magpi: ledger records action target and input (PR on browser-session-agent) |
 
 **Day 1 — afternoon (one guided test end to end)**
 
 | Lane | Stories |
 | --- | --- |
-| A | [ ] MT-1.2 Target manifest + answer-key guard → [ ] MT-1.5 Attach mode → [ ] MT-7.1 onchain-invoice manifest → [ ] MT-7.5 QA CI job |
-| B | [ ] MT-2.2 Bounded-run adapter → [ ] MT-2.4 Trajectory reader |
-| C | [ ] MT-6.1 Playwright emitter → [ ] MT-6.2 Generated Playwright config → [ ] MT-6.3 Acceptance runner → [ ] MT-6.5 No-AI guard |
-| D | [ ] MT-4.1 Scenario format → [ ] MT-4.2 Criteria compiler → [ ] MT-4.3 `magpi-test guided` |
-| E | [ ] MT-3.0 QA brief ingest and agent prompt |
+| A | [x] MT-1.2 Target manifest + answer-key guard → [x] MT-1.5 Attach mode → [x] MT-7.1 onchain-invoice manifest → [ ] MT-7.5 QA CI job |
+| B | [x] MT-2.2 Bounded-run adapter → [x] MT-2.4 Trajectory reader |
+| C | [x] MT-6.1 Playwright emitter → [x] MT-6.2 Generated Playwright config → [x] MT-6.3 Acceptance runner → [x] MT-6.5 No-AI guard |
+| D | [x] MT-4.1 Scenario format → [x] MT-4.2 Criteria compiler → [x] MT-4.3 `magpi-test guided` |
+| E | [x] MT-3.0 QA brief ingest and agent prompt |
 
 Gate for day 2: one hand-written scenario on onchain-invoice becomes an accepted spec.
 MT-1.3 (local stack controller) is optional; build it only if a lane is idle.
@@ -103,11 +109,11 @@ MT-1.3 (local stack controller) is optional; build it only if a lane is idle.
 
 | Lane | Stories |
 | --- | --- |
-| A | [ ] MT-3.1 Static scan (with source links) → [ ] MT-3.2 Live surface survey → [ ] MT-3.3 App map and critical paths (with brief and `sourceFiles`) |
+| A | [x] MT-3.1 Static scan (with source links) → [x] MT-3.2 Live surface survey → [x] MT-3.3 App map and critical paths (with brief and `sourceFiles`) |
 | B | [ ] MT-2.3 Coached-session adapter → [ ] MT-5.2 Coached pass runner |
-| C | [ ] MT-5.1 Lenses and pass planner → [ ] MT-5.3 Pass harvest |
-| D | [ ] MT-6.4 Repair loop → [ ] MT-7.2 First guided batch |
-| E | [ ] MT-6.6 Acceptance in attach mode → [ ] MT-6.7 Manual test renderer |
+| C | [x] MT-5.1 Lenses and pass planner → [ ] MT-5.3 Pass harvest |
+| D | [x] MT-6.4 Repair loop → [ ] MT-7.2 First guided batch |
+| E | [x] MT-6.6 Acceptance in attach mode → [x] MT-6.7 Manual test renderer |
 
 **Day 2 — afternoon (unleash)**
 
@@ -115,7 +121,7 @@ MT-1.3 (local stack controller) is optional; build it only if a lane is idle.
 | --- | --- |
 | A | [ ] MT-7.3 `magpi-test run` on onchain-invoice |
 | B | [ ] MT-7.4 M1 report and roadmap update |
-| C | [ ] MT-10.1 `magpi-test impact` (stretch) |
+| C | [x] MT-10.1 `magpi-test impact` (stretch) |
 
 If time runs short, cut in this order: MT-10.1; the agent-prompt half of MT-3.0
 (hand-write the onchain-invoice brief); reset support in MT-6.6 (self-isolating data
