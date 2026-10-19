@@ -51,6 +51,11 @@ test("ref_exists is rejected", () => {
   assert.match(validateScenario(s).join(), /ref_exists/);
 });
 
+test("unknown predicate fields are rejected", () => {
+  const s = parseScenarioMarkdown(EXAMPLE.replace("- text_visible: 25", '- {"kind":"url_includes","text":"/pay","negate":true}'));
+  assert.match(validateScenario(s).join(), /does not take negate/);
+});
+
 test("criterion shorthand", () => {
   assert.deepEqual(parseCriterionLine("control_exists: button|Create invoice"), { kind: "control_exists", role: "button", name: "Create invoice" });
   assert.deepEqual(parseCriterionLine("no_console_error:"), { kind: "no_console_error" });

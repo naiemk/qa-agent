@@ -50,11 +50,20 @@ export interface Scenario {
   quarantine?: { suspected: string; error: string };
 }
 
+const PREDICATE_FIELDS: Record<string, string[]> = {
+  url_includes: ["text"], title_includes: ["text"], text_visible: ["text"], text_absent: ["text"], ref_exists: ["ref"],
+  control_exists: ["role", "name"], control_absent: ["role", "name"], value_equals: ["name", "text"], value_includes: ["name", "text"],
+  no_console_error: [], dialog_open: ["open"], all: ["of"], any: ["of"], not: ["of"],
+};
+
 export function validatePredicate(value: unknown, where = "criterion"): string[] {
   if (!value || typeof value !== "object") return [`${where}: not an object`];
   const p = value as Record<string, unknown>;
   const kind = p.kind as string;
   if (!PREDICATE_KINDS.includes(kind as never)) return [`${where}: unknown kind ${String(kind)}`];
+  // Unknown fields (a model's "negate": true) would be silently ignored by Magpi and the emitter.
+  const extra = Object.keys(p).filter((key) => key !== "kind" && !PREDICATE_FIELDS[kind].includes(key));
+  if (extra.length) return [`${where}: ${kind} does not take ${extra.join(", ")} (use text_absent / control_absent for negation)`];
   const needText = ["url_includes", "title_includes", "text_visible", "text_absent"];
   if (needText.includes(kind) && (typeof p.text !== "string" || !p.text)) return [`${where}: ${kind} needs text`];
   if ((kind === "value_equals" || kind === "value_includes") && (typeof p.name !== "string" || typeof p.text !== "string")) {

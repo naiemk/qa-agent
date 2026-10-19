@@ -14,7 +14,7 @@ import { draftScenario, planPasses } from "../explore/planner.ts";
 import { AnswerKeyError, fileAccess } from "../files/index.ts";
 import type { Spawner } from "../magpi/run.ts";
 import type { ModelClient } from "../model/index.ts";
-import { MissingKeyError, openRouterClient } from "../model/openrouter.ts";
+import { MissingKeyError, openRouterClient, ProviderCreditError } from "../model/openrouter.ts";
 import { writeManual } from "../manual/index.ts";
 import { acceptTrajectory, runScenario, saveScenario, writeConfigs, type PipelineContext } from "../pipeline.ts";
 import { renderReport, type RunRecord } from "../report/index.ts";
@@ -119,6 +119,10 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
     if (error instanceof EnvNotReadyError || error instanceof EnvResetError) {
       process.stderr.write(`environment not ready: ${error.message}\n`);
       return EXIT.envNotReady;
+    }
+    if (error instanceof ProviderCreditError) {
+      process.stderr.write(`${error.message}\nAdd credits at https://openrouter.ai/settings/credits; partial results are in magpi-tests/\n`);
+      return EXIT.budget;
     }
     if (error instanceof BudgetExceeded) {
       process.stderr.write(`${error.message}; partial results are in magpi-tests/\n`);
@@ -340,6 +344,7 @@ async function explore(session: Session): Promise<void> {
     try {
       scenario = await draftScenario(pass, ctx.survey ?? { schemaVersion: 1, baseURL: ctx.env.baseURL, implementation: "playwright", pages: [] }, ctx.model, avoid);
     } catch (error) {
+      if (error instanceof ProviderCreditError) throw error;
       session.out(`pass ${pass.id}: could not draft a scenario (${(error as Error).message.split("\n")[0]})`);
       continue;
     }

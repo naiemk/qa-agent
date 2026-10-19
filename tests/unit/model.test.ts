@@ -33,3 +33,20 @@ test("openRouterClient needs a key; provider prefix is stripped", () => {
   assert.throws(() => openRouterClient({ env: {} }), /OPENROUTER_API_KEY/);
   assert.equal(stripProvider("openrouter/google/gemini-2.5-flash"), "google/gemini-2.5-flash");
 });
+
+test("a 402 from OpenRouter is a ProviderCreditError and requests cap max_tokens", async () => {
+  const { ProviderCreditError, MAX_OUTPUT_TOKENS } = await import("../../src/model/openrouter.ts");
+  const realFetch = globalThis.fetch;
+  let body: { max_tokens?: number } = {};
+  globalThis.fetch = (async (_url: string, init: { body: string }) => {
+    body = JSON.parse(init.body);
+    return new Response('{"error":{"message":"more credits"}}', { status: 402 });
+  }) as unknown as typeof fetch;
+  try {
+    const client = openRouterClient({ env: { OPENROUTER_API_KEY: "test" } });
+    await assert.rejects(client.completeJson(request), ProviderCreditError);
+    assert.equal(body.max_tokens, MAX_OUTPUT_TOKENS);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

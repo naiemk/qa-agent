@@ -4,6 +4,12 @@ export const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 export class MissingKeyError extends Error {}
 
+/** OpenRouter 402: the account cannot pay for more calls. Stops the run (exit 4). */
+export class ProviderCreditError extends Error {}
+
+/** Our calls answer with small JSON; without a cap OpenRouter reserves the model's maximum. */
+export const MAX_OUTPUT_TOKENS = 4096;
+
 /** OpenRouter chat completions over fetch. Live runs only; tests use the fake. */
 export function openRouterClient(options: { model?: string; promptLog?: string; env?: NodeJS.ProcessEnv } = {}): ModelClient {
   const env = options.env ?? process.env;
@@ -17,6 +23,7 @@ export function openRouterClient(options: { model?: string; promptLog?: string; 
       body: JSON.stringify({
         model,
         temperature: 0.2,
+        max_tokens: MAX_OUTPUT_TOKENS,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },
@@ -25,6 +32,7 @@ export function openRouterClient(options: { model?: string; promptLog?: string; 
       }),
       signal: AbortSignal.timeout(180_000),
     });
+    if (response.status === 402) throw new ProviderCreditError(`OpenRouter is out of credits: ${(await response.text()).slice(0, 300)}`);
     if (!response.ok) throw new Error(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 500)}`);
     const body = (await response.json()) as {
       choices?: { message?: { content?: string } }[];

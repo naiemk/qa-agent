@@ -30,7 +30,6 @@ const FIXTURE_HINTS: [RegExp, string][] = [
   [/otp|verify[-_ ]?email|magic[-_ ]?link/i, "email-otp"],
   [/fund|faucet|deposit|withdraw/i, "funding"],
   [/wallet/i, "wallet"],
-  [/admin/i, "admin-key"],
 ];
 
 interface ModelMap {
@@ -99,7 +98,9 @@ export async function buildAppMap(scan: StaticScan, survey: LiveSurvey, model: M
       "You are a senior QA engineer mapping a web app. Group routes into product areas and pick the critical user paths to test. " +
       "Rank by user value and risk (money, identity, data loss). Prefer flows that end in a visible, checkable outcome. " +
       "A critical path starts on one of the listed routes; never invent routes. Mark needsFixture for flows that need passkeys/webauthn, " +
-      "email OTP, funded wallets, admin keys, or background workers. Pick lenses from: " + LENSES.join(", ") + ".",
+      "email OTP, funded wallets, admin keys, or background workers. Also include paths that need no fixtures and can be tested now: " +
+      "navigation across content pages, form validation, empty or not-found states, and access refused without credentials (a refusal needs no key). " +
+      "Use short fixture names: webauthn, email-otp, funding, wallet, admin-key, worker-tick. Pick lenses from: " + LENSES.join(", ") + ".",
     user: `Known routes: ${routes.join(", ")}\n\n${mapSummary(scan, survey, brief)}`,
     schemaHint:
       '{"areas":[{"id":"commerce","title":"Commerce","routes":["/create"],"summary":"one sentence"}],' +

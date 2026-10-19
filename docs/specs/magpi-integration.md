@@ -256,6 +256,10 @@ decides and records it in `decisions.md`.
 
 ## Corrections
 
+- 2026-10-19: `--criterion` JSON values were split on their own commas by Magpi's
+  `flagList` (repeated flags are comma-joined), so every JSON criterion failed to parse.
+  Fixed upstream in naiemk/browser-session-agent#83 (split only on top-level commas).
+  Until it is merged, magpi-test needs a Magpi checkout that includes it.
 - 2026-10-12: `Control.role` is Magpi's snapshot role (explicit `role` attribute, else
   input type or tag), not an ARIA role. Added the mapping table above; found while
   implementing MT-2.1.
