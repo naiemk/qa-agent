@@ -41,9 +41,25 @@ test("builds a ref-free trajectory with the spec's rules", () => {
 });
 
 test("unsupported kinds and target-less actions fail clearly", () => {
-  assert.throws(() => buildTrajectory([{ type: "action", action: { kind: "upload" }, outcome: { ok: true, detail: "" } }], base), /unsupported Magpi action kind "upload"/);
+  assert.throws(() => buildTrajectory([{ type: "action", action: { kind: "upload" }, outcome: { ok: true, detail: "" } }], base), /upload needs a fixture file/);
+  assert.throws(() => buildTrajectory([{ type: "action", action: { kind: "hover" }, outcome: { ok: true, detail: "" } }], base), /unsupported Magpi action kind "hover"/);
   assert.throws(() => buildTrajectory([{ type: "action", action: { kind: "click", ref: "e1" }, outcome: { ok: true, detail: "" } }], base), TrajectoryBuildError);
   assert.throws(() => buildTrajectory([{ type: "action", action: { kind: "navigate", url: "https://evil.example/" }, outcome: { ok: true, detail: "" } }], base), /leaves the app/);
+});
+
+test("a restore replays as the navigate and re-type actions Magpi ledgered before it", () => {
+  const name = { role: "text", name: "Your name", tag: "input", inputType: "text" };
+  const ok = { ok: true, detail: "" };
+  const t = buildTrajectory([
+    { type: "action", intent: "type name", before: at("/order"), action: { kind: "type", ref: "e3", target: name, input: "Ada" }, after: at("/order"), outcome: ok },
+    { type: "action", intent: "try the help link", before: at("/order"), action: { kind: "click", ref: "e8", target: { role: "a", name: "Help", tag: "a" } }, after: at("/help"), outcome: ok },
+    { type: "action", intent: "navigate", before: at("/help"), action: { kind: "navigate", url: "http://127.0.0.1:4599/order" }, after: at("/order"), outcome: ok },
+    { type: "action", intent: 'restore "Your name" from checkpoint', before: at("/order"), action: { kind: "type", ref: "e3", target: name, input: "Ada" }, after: at("/order"), outcome: ok },
+    { type: "action", intent: "restore checkpoint", action: { kind: "restore" }, after: at("/order"), outcome: { ok: true, detail: "restored http://127.0.0.1:4599/order" } },
+    { type: "action", intent: "place order", before: at("/order"), action: { kind: "click", ref: "e7", target: { role: "submit", name: "Place order", tag: "button" } }, after: at("/orders/0xabcdef1234567890"), outcome: ok },
+  ], base);
+  assert.deepEqual(t.steps.map((s) => s.action.kind), ["fill", "click", "goto", "fill", "click"]);
+  assert.deepEqual(t.steps[2].action, { kind: "goto", path: "/order" });
 });
 
 test("aria role mapping follows the magpi-integration table", () => {

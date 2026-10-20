@@ -256,6 +256,13 @@ decides and records it in `decisions.md`.
 
 ## Corrections
 
+- 2026-10-20: the ledger also records `restore` and `upload` actions (`ActionKind` in
+  `src/core/types.ts`). A `restore` event is a marker: `restoreCheckpoint` first ledgers
+  its own `navigate` to the checkpoint URL and one `type`/`select` per saved field
+  (intent `restore "<name>" from checkpoint`), then `runRestore` appends the `restore`
+  event. The trajectory reader therefore skips `restore` and replays the ledger in
+  order. Checkpoint saves are not ledgered. `upload` has no replayable file and is
+  rejected until M3 fixtures.
 - 2026-10-19: `--criterion` JSON values were split on their own commas by Magpi's
   `flagList` (repeated flags are comma-joined), so every JSON criterion failed to parse.
   Fixed upstream in naiemk/browser-session-agent#83 (split only on top-level commas).

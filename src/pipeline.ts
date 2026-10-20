@@ -9,7 +9,7 @@ import type { Budget } from "./budget.ts";
 import type { Manifest } from "./config/index.ts";
 import type { QaBrief } from "./discover/brief.ts";
 import type { LiveSurvey } from "./discover/live-survey.ts";
-import { runBounded, type Spawner } from "./magpi/run.ts";
+import { runBounded, type BoundedRunResult, type Spawner } from "./magpi/run.ts";
 import { buildTrajectory, readLedger, TrajectoryBuildError } from "./magpi/trajectory.ts";
 import type { ModelClient } from "./model/index.ts";
 import type { RunRecord } from "./report/index.ts";
@@ -30,7 +30,8 @@ export interface PipelineContext {
   budget: Budget;
   survey?: LiveSurvey;
   brief?: QaBrief;
-  magpi: { model?: string; maxTurns: number; spawner?: Spawner; headed?: boolean };
+  /** `attempts`: bounded runs per scenario when the criteria are not met (default 2). */
+  magpi: { model?: string; maxTurns: number; attempts?: number; spawner?: Spawner; headed?: boolean };
   acceptSpawner?: PlaywrightSpawner;
   trivialCheck?: TrivialCheck;
   repairAttempts?: number;
@@ -57,7 +58,8 @@ export async function saveScenario(paths: TargetPaths, scenario: Scenario): Prom
   await writeJson(path.join(paths.state, "scenarios", `${scenario.id}.json`), scenario);
 }
 
-function goalText(scenario: Scenario, brief?: QaBrief): string {
+function goalText(scenario: Scenario, brief?: QaBrief, previous?: BoundedRunResult): string {
+  const failed = previous?.checks.filter((c) => !c.passed).map((c) => `- ${c.predicate}: ${c.detail}`) ?? [];
   return [
     `Test scenario: ${scenario.title}`,
     scenario.preconditions.length ? `Preconditions: ${scenario.preconditions.join("; ")}` : "",
@@ -65,6 +67,10 @@ function goalText(scenario: Scenario, brief?: QaBrief): string {
     `Expected:\n${scenario.expected.map((s) => `- ${s}`).join("\n")}`,
     "This is a local test environment; use the fake data given in the steps. Stop as soon as the expected outcome is visible.",
     brief?.offLimits.length ? `Never: ${brief.offLimits.join("; ")}` : "",
+    previous
+      ? `A previous attempt stopped after ${previous.turns} turns before the expected outcome. These checks failed on its final page:\n${failed.join("\n")}\n` +
+        "Carry out every step before finishing. If a control from the steps is not visible, look for the button, tab, or section that reveals it."
+      : "",
   ].filter(Boolean).join("\n\n");
 }
 
@@ -112,25 +118,39 @@ export async function runScenario(input: Scenario, ctx: PipelineContext): Promis
     return scenario;
   }
 
-  ctx.budget.check();
   scenario = { ...scenario, status: "running" };
   await save();
-  ctx.log(`  magpi run ${scenario.id} (${scenario.lens}) at ${scenario.startPath}`);
-  const run = await runBounded(
-    { goal: goalText(scenario, ctx.brief), url: startURL, criteria: scenario.criteria, policy: ctx.manifest.policy, maxTurns: ctx.magpi.maxTurns, model: ctx.magpi.model, root: ctx.paths.magpiHome, headed: ctx.magpi.headed },
-    ctx.magpi.spawner,
-  );
-  ctx.budget.tokens.magpi += run.tokens;
-  ctx.budget.costUsd += run.costUsd;
-  ctx.budget.browserActions += run.turns;
-  const record: RunRecord & { checks: unknown; stderrTail?: string } = {
-    scenarioId: scenario.id, goalId: run.goalId, status: run.status, turns: run.turns, tokens: run.tokens, costUsd: run.costUsd, coachedBy: "none", durationMs: run.durationMs, checks: run.checks,
+  const attempts = ctx.magpi.attempts ?? 2;
+  const totals = { turns: 0, tokens: 0, costUsd: 0, durationMs: 0 };
+  let run: BoundedRunResult | undefined;
+  let attempt = 0;
+  // A failed run gets another try told which checks failed; the criteria never change.
+  while (attempt < attempts && (!run || run.status === "failed")) {
+    ctx.budget.check();
+    attempt++;
+    ctx.log(`  magpi run ${scenario.id} (${scenario.lens}) at ${scenario.startPath}${attempt > 1 ? ` (attempt ${attempt})` : ""}`);
+    run = await runBounded(
+      { goal: goalText(scenario, ctx.brief, run), url: startURL, criteria: scenario.criteria, policy: ctx.manifest.policy, maxTurns: ctx.magpi.maxTurns, model: ctx.magpi.model, root: ctx.paths.magpiHome, headed: ctx.magpi.headed },
+      ctx.magpi.spawner,
+    );
+    ctx.budget.tokens.magpi += run.tokens;
+    ctx.budget.costUsd += run.costUsd;
+    ctx.budget.browserActions += run.turns;
+    totals.turns += run.turns;
+    totals.tokens += run.tokens;
+    totals.costUsd += run.costUsd;
+    totals.durationMs += run.durationMs;
+    if (run.status === "success") break;
+  }
+  run = run!;
+  const record: RunRecord & { checks: unknown; attempts: number; stderrTail?: string } = {
+    scenarioId: scenario.id, goalId: run.goalId, status: run.status, ...totals, coachedBy: "none", checks: run.checks, attempts: attempt,
     ...(run.status === "error" ? { stderrTail: run.stderrTail } : {}),
   };
   await writeJson(path.join(ctx.paths.state, "runs", `${scenario.id}.json`), record);
   if (run.status !== "success" || !run.goalId) {
     const failedChecks = run.checks.filter((c) => !c.passed).map((c) => `${c.predicate}: ${c.detail}`).join("; ");
-    const detail = run.status === "error" ? `magpi error: ${run.stderrTail.split("\n").filter(Boolean).slice(-3).join(" | ")}` : `criteria not met after ${run.turns} turns: ${failedChecks}`;
+    const detail = run.status === "error" ? `magpi error: ${run.stderrTail.split("\n").filter(Boolean).slice(-3).join(" | ")}` : `criteria not met after ${attempt} run(s), ${totals.turns} turns: ${failedChecks}`;
     return quarantine(run.status === "error" ? "environment" : "exploration", detail);
   }
 

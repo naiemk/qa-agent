@@ -66,6 +66,11 @@ must fit in the two days.
 > The live exit checks below wait on a run with an OpenRouter key. Not built yet: MT-0.1,
 > MT-1.3 (optional), MT-2.3 and MT-5.2 (coached passes; see QD18), MT-5.3 (harvest).
 
+> 2026-10-20: the first live run (2026-10-19) accepted 0 specs. Fixed before funding the
+> next one: the live survey failed on every page (tsx `__name`), a failed Magpi run had
+> no retry (QD20), `restore` actions broke trajectory building, and `run` re-planned
+> passes on every invocation (QD21).
+
 - [ ] `magpi-test discover` on onchain-invoice writes an app map with areas and ranked critical paths, without reading answer-key files (MT-3.3, MT-1.2 guard test).
 - [ ] At least 3 guided scenarios become accepted specs (MT-7.2).
 - [ ] At least 5 explored specs accepted, from at least 2 lenses, including at least one edge case (validation error, empty state, or invalid link) (MT-7.3).
