@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.private-key.pem
+.queue/
+*.tsbuildinfo

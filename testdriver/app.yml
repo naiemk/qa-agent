@@ -1,0 +1,26 @@
+# GitHub App manifest sketch (Probot / manual registration).
+# Days 0–2: create a PRIVATE app with these permissions and events.
+# Day 7–10: flip visibility to public; share installations/new URL.
+# Week 2+: optional Marketplace listing (see marketplace/LISTING.md).
+#
+# Name / slug: choose something like "magpi-test" (avoid "testdriver" to
+# reduce confusion with TestDriver.ai).
+
+default_events:
+  - issue_comment
+  - pull_request
+  # Optional later: deployment_status for preview URL discovery
+
+default_permissions:
+  # Read PR/issue bodies; write replies and reactions
+  issues: write
+  pull_requests: write
+  # Open a follow-up PR with accepted specs (optional; can start read-only)
+  contents: write
+  # Optional later for check runs (Ito-like); not required for mention MVP
+  checks: write
+  metadata: read
+
+# Suggested description for the App registration form:
+# "Mention @magpi-test on an issue or PR with a preview URL; Magpi Test runs
+#  attach-mode QA and posts a summary. Does not require Marketplace."
