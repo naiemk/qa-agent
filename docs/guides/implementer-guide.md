@@ -52,29 +52,32 @@ about. If you only have time for one section, read "Traps".
 
 1. **Magpi's ledger stores `ref: "e12"`, not a locator.** Until MT-2.1 lands, role and
    name come from `payloads.jsonl`. Never emit a ref.
-2. **`browser-agent run` with no `--criterion` always succeeds** (Magpi substitutes
+2. **Magpi's `role` is not an ARIA role** (`text`, `select-one`, `submit`, `a`), and its
+   `name` may be the `name` attribute. Map to ARIA roles with the table in
+   magpi-integration.md before emitting `getByRole`.
+3. **`browser-agent run` with no `--criterion` always succeeds** (Magpi substitutes
    `url_includes: ""`). Always pass real criteria.
-3. **Criteria that are already true on the start page** make do-nothing runs pass.
+4. **Criteria that are already true on the start page** make do-nothing runs pass.
    The criteria compiler must check them against a fresh start page.
-4. **Playwright runs `webServer.command` from the config file's directory.** The
+5. **Playwright runs `webServer.command` from the config file's directory.** The
    generated config lives in `magpi-tests/`, so set `cwd` to the target root.
-5. **`reuseExistingServer` is on outside CI** in onchain-invoice. Acceptance uses
+6. **`reuseExistingServer` is on outside CI** in onchain-invoice. Acceptance uses
    `CI=1` so the stack starts fresh, which means the exploration stack must be stopped
    first, or ports collide.
-6. **i18n names.** Many onchain-invoice accessible names come from translations. Pin
+7. **i18n names.** Many onchain-invoice accessible names come from translations. Pin
    `locale: "en-US"` in the browser context for both exploration and replay.
-7. **Dynamic values.** Invoice ids, addresses, hashes, timestamps differ per run. Never
+8. **Dynamic values.** Invoice ids, addresses, hashes, timestamps differ per run. Never
    assert them; assert the stable label or the URL prefix.
-8. **`--policy auto` lets Magpi submit, pay, and delete without asking.** Only for local
+9. **`--policy auto` lets Magpi submit, pay, and delete without asking.** Only for local
    stacks; the manifest loader enforces it.
-9. **Magpi's internals are not exported** (`runTask`, `Ledger`, coach). Do not deep-import
+10. **Magpi's internals are not exported** (`runTask`, `Ledger`, coach). Do not deep-import
    `@naiemk/magpi/src/...`. Use the CLI, or propose a small exported API upstream.
-10. **The coached parent path may not run unattended yet.** MT-0.2 decides. If it does
+11. **The coached parent path may not run unattended yet.** MT-0.2 decides. If it does
     not, use the documented fallback and label runs `coachedBy: "magpi-test-fallback"`.
     Never present fallback runs as Magpi-coached.
-11. **Do not read `ui/e2e/*.spec.ts` in onchain-invoice**, not even to check a selector
+12. **Do not read `ui/e2e/*.spec.ts` in onchain-invoice**, not even to check a selector
     when a test fails. Use the trace and the ARIA snapshot instead.
-12. **Node test runner, not Jest or Vitest.** `tsx --test`, `node:test`, `node:assert/strict`.
+13. **Node test runner, not Jest or Vitest.** `tsx --test`, `node:test`, `node:assert/strict`.
 
 ## Writing prompts for Magpi Test's own model calls
 

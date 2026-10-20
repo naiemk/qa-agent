@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "name": "fixture-shop",
+  "baseURL": "http://127.0.0.1:4599",
+  "start": { "attach": {} },
+  "read": {
+    "include": ["README.md", "AGENTS.md", "docs/**/*.md", "src/**/*.{ts,tsx}", "e2e/helpers/**"],
+    "answerKey": ["e2e/*.spec.ts"]
+  },
+  "policy": "auto",
+  "locale": "en-US"
+}

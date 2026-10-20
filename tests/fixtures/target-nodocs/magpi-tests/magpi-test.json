@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "name": "nodocs",
+  "baseURL": "http://127.0.0.1:4598",
+  "start": { "attach": {} },
+  "read": { "include": ["src/**"], "answerKey": ["secret/**"] },
+  "policy": "auto"
+}

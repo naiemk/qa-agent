@@ -45,6 +45,26 @@ For acceptance, stop the exploration stack and run with `CI=1` so Playwright sta
 fresh one (QD6). The Hardhat chain state therefore resets between exploration and
 acceptance, which is the "clean enough state" we want.
 
+### Local run notes (2026-10-17)
+
+- `better-sqlite3` in `node_modules` was built for Node 24; under Node 26 the API exits
+  with `ERR_DLOPEN_FAILED`. Start the stack with Node 24 on `PATH`
+  (`examples/onchain-invoice/start-stack.sh` works the same in CI on Node 24).
+- `npm run commerce:build` must run first; `boot.mjs` starts `commerce-dist/`.
+
+### QA CI job (attach mode, MT-7.5)
+
+The primary path from 2026-10-16 (QD11). A new workflow
+`.github/workflows/qa-agent.yml` in onchain-invoice brings up the simulated stack and
+hands Magpi Test the URL. Use the local e2e stack (Hardhat + `node ui/e2e/stack/boot.mjs`
++ UI, the same three `webServer` entries), not the `system-tests` docker compose stack:
+the compose stack points at Sepolia contract addresses, while the e2e stack is fully
+local with dev OTP. The job starts those processes in the background, waits for
+`/api/health`, and exports `MAGPI_TEST_BASE_URL=http://localhost:5173`,
+`MAGPI_TEST_READY_URL=http://127.0.0.1:8080/api/health`. No reset command in M1
+(specs must self-isolate, QD15). Scripts under `system-tests/scripts/` may be read;
+`system-tests/tests/**` stays answer key.
+
 If the project later adds a single `npm run e2e:stack` script, switch the manifest to
 it. That is the project's change to make, not ours.
 

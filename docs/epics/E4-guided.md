@@ -9,7 +9,7 @@ Test turns it into an accepted Playwright spec.
 ---
 
 ### MT-4.1 Scenario format and parser
-- [ ] done
+- [x] done
 
 **Outcome.** `parseScenarioMarkdown(text, id)` and `validateScenario(s)` turn a human
 scenario file into a `Scenario`.
@@ -36,7 +36,7 @@ scenario file into a `Scenario`.
 ---
 
 ### MT-4.2 Criteria compiler
-- [ ] done
+- [x] done
 
 **Outcome.** `compileCriteria(scenario, stack, model)` fills `criteria` from
 `expected` when a human did not write them, and proves they are not trivially true.
@@ -67,7 +67,9 @@ scenario file into a `Scenario`.
 ---
 
 ### MT-4.3 `magpi-test guided`
-- [ ] done
+- [x] done
+
+> 2026-10-17: `runScenario` lives in `src/pipeline.ts`; the day-1 gate on onchain-invoice is pending the live run.
 
 **Outcome.** `magpi-test guided --target <dir> [files...]` runs the whole guided path:
 parse → compile criteria → bounded Magpi run → trajectory → emit → accept (→ repair).

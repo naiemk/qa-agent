@@ -12,23 +12,27 @@ Work in a branch of `naiemk/onchain-invoice` for anything written there
 ---
 
 ### MT-7.1 onchain-invoice manifest
-- [ ] done
+- [x] done
+
+> 2026-10-17: manifest at `examples/onchain-invoice/magpi-test.json`; copied into onchain-invoice `magpi-tests/` locally, not committed there.
 
 **Outcome.** `onchain-invoice/magpi-tests/magpi-test.json` exists and
-`startStack` brings the app up from it.
+the QA CI job (MT-7.5) or, locally, `startStack` can bring the app up for it.
 
 **Depends on.** MT-1.3.
 **Touches (onchain-invoice).** `magpi-tests/magpi-test.json`, `.gitignore`
 (`magpi-tests/state/magpi-home/`, `magpi-tests/state/logs/`).
 
 **Done when.**
-- Manifest uses `fromPlaywrightConfig: "playwright.config.ts"`, `baseURL`
-  `http://localhost:5173`, the answer-key globs from the spec, `locale: "en-US"`,
+- Manifest uses `start: { attach: {} }` with `baseURL` `http://localhost:5173` as the
+  local fallback (QD11), the answer-key globs from the spec, `locale: "en-US"`,
   `policy: "auto"`.
 - `read.include` covers `README.md`, `AGENTS.md`, `docs/**/*.md`, `ui/src/**`, and
   `ui/e2e/helpers/**` (helpers allowed, specs not).
-- A script or test in this repo starts and stops the onchain-invoice stack from the
-  manifest and confirms `GET /api/health` and the UI respond.
+- `magpi-test init --target ../onchain-invoice` produces a valid `qa-brief.md` from the
+  repo's docs (MT-3.0); a human reviews it and commits it.
+- With the stack started by hand (`npx playwright test --list` is not enough; start the
+  three `webServer` commands), `attachEnv` reports ready against `/api/health`.
 
 **Questions.**
 
@@ -61,12 +65,14 @@ Work in a branch of `naiemk/onchain-invoice` for anything written there
 **Outcome.** One command discovers, explores through lenses with coaching, and accepts
 specs for onchain-invoice.
 
-**Depends on.** MT-5.3, MT-6.4, MT-7.2.
+**Depends on.** MT-5.3, MT-6.4, MT-6.6, MT-6.7, MT-7.2.
 **Touches.** `src/cli/run.ts` (this repo); onchain-invoice `magpi-tests/`.
 
 **Done when.**
-- `magpi-test run --target ../onchain-invoice` runs discover → guided → explore →
-  accept → report, resumable after interruption.
+- `magpi-test run --target ../onchain-invoice` runs init → discover → guided →
+  explore → accept → manual → report, resumable after interruption.
+- `--max-tokens` and `--max-minutes` stop the run cleanly with exit code 4 and partial
+  results written (test with the fake model and a tiny budget).
 - Roadmap M1 exit checks for discovery, explored specs (5+, 2+ lenses, 1+ edge case),
   and coaching evidence are met, or the shortfall is written in the report with the
   reason.
@@ -94,5 +100,38 @@ produced, and the roadmap reflects reality.
 - One extra full replay of all accepted specs at the end is recorded (stability).
 - Roadmap M1 boxes ticked or annotated with dated notes; open-questions answers
   updated; any new decision recorded.
+
+**Questions.**
+
+---
+
+### MT-7.5 QA CI job on onchain-invoice
+- [ ] done
+
+**Outcome.** A GitHub Actions workflow in onchain-invoice brings up the simulated stack,
+hands Magpi Test the URL, runs `magpi-test run`, and uploads `magpi-tests/` as an
+artifact. This is how M1 is demonstrated (QD11).
+
+**Depends on.** MT-1.5, MT-7.1.
+**Touches (onchain-invoice).** `.github/workflows/qa-agent.yml`.
+
+**Done when.**
+- Triggered by `workflow_dispatch`; installs deps, `npm run commerce:build`,
+  `npx playwright install --with-deps chromium`, starts the local e2e stack (the three
+  `webServer` commands) in the background, and waits for `/api/health`.
+- Exports `MAGPI_TEST_BASE_URL` and `MAGPI_TEST_READY_URL` as in
+  [onchain-invoice.md](../specs/onchain-invoice.md); no reset command in M1.
+- Runs `magpi-test run` with `OPENROUTER_API_KEY` from repo secrets and explicit
+  `--max-tokens` / `--max-minutes`.
+- Uploads `magpi-tests/` (specs, manual, state, report) with `actions/upload-artifact`
+  even when the run fails.
+- A second job (or step) replays accepted specs with no provider key set and passes.
+- `magpi-test` never starts a server in this job (the run log shows attach mode).
+
+**Notes for the implementer.**
+- Use the e2e stack, not `system-tests` docker compose: compose points at Sepolia
+  addresses. Scripts in `system-tests/scripts/` are fine to read; `system-tests/tests/**`
+  is answer key.
+- Until Magpi Test is published, install it from a git ref of this repo.
 
 **Questions.**

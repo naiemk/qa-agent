@@ -11,7 +11,39 @@ Status: **proposed (M1)**. Decisions: QD2, QD3. Depends on MT-0.2 for the coache
 
 ## Discovery (MT-3.1 → MT-3.3)
 
-Three cheap steps, in order. The output is `state/app-map.json`.
+A QA brief, then three cheap steps, in order. The output is `state/app-map.json`.
+
+### 0. QA brief (MT-3.0, QD14)
+
+`<target>/magpi-tests/qa-brief.md`, committed by the user. Fixed headings, unknown
+headings are an error:
+
+```markdown
+# QA brief: <product>
+## Product          one or two sentences: what it is for
+## Users and roles
+## Areas            - <area id>: <title> — routes: /a, /b — source: ui/src/pages/x/
+## Critical flows   ordered, most important first: "- <title> (<area id>): <why>"
+## Test data        accounts, seeded records, dev OTP, faucets available in the environment
+## Off-limits       never do these (real payments, emailing real users, admin deletes)
+## Known fixtures   webauthn, email-otp, funding, worker-tick, ...
+```
+
+`magpi-test init --target <dir>`:
+
+1. If the brief exists and validates, do nothing.
+2. Otherwise collect, through `src/files/` only: `AGENTS.md`, `CLAUDE.md`, `QA.md`,
+   `README*`, `.cursor/rules/**`, `docs/**/*.md` (each capped, total under 8k tokens).
+   If they name at least one route or flow, one cheap model call condenses them into
+   the brief format, which is written with a `<!-- generated, review me -->` header.
+3. If they are too thin, print the agent prompt (`src/discover/brief-prompt.md`) and
+   exit 3. The prompt tells the user's coding agent (Claude Code, Cursor, ...) to read
+   the repo and write the brief, and lists the manifest's `answerKey` globs as files it
+   must not open or quote.
+
+The brief is a hint, never ground truth: its routes still have to appear in the scan
+or survey, and its flows become candidate critical paths that the app-map step may
+rank or drop.
 
 ### 1. Static scan (no browser, no model)
 
@@ -46,7 +78,8 @@ Never submit forms here. Output: `state/live-survey.json`.
 ### 3. App map and critical paths (one or two cheap model calls)
 
 Input: the static scan summary and live survey summary (trimmed: route, title,
-headings, forms, primary buttons; no source code), plus the top docs headings.
+headings, forms, primary buttons; no source code), the QA brief's areas and critical
+flows, plus the top docs headings.
 
 Output `state/app-map.json`:
 
@@ -54,7 +87,7 @@ Output `state/app-map.json`:
 interface AppMap {
   schemaVersion: 1;
   generatedAt: string;
-  areas: { id: string; title: string; routes: string[]; summary: string }[];
+  areas: { id: string; title: string; routes: string[]; summary: string; sourceFiles: string[] }[];
   criticalPaths: {
     id: string;                 // "commerce.create-invoice"
     area: string;
@@ -64,12 +97,14 @@ interface AppMap {
     priority: 1 | 2 | 3;
     needsFixture: string[];     // inferred from helpers/routes: "webauthn", "email-otp", ...
     lenses: Lens[];             // which lenses make sense here
+    sourceFiles: string[];      // from the scan, never from the model (QD17)
+    fromBrief: boolean;         // proposed by the QA brief
   }[];
   unexplored: string[];         // routes seen but not understood
 }
 ```
 
-The model ranks and groups; it does not invent routes. Validation rejects any
+The model ranks and groups; it does not invent routes or source files. Validation rejects any
 `startPath` not present in the scan or survey.
 
 ## Exploration (MT-5.1 → MT-5.3)

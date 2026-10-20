@@ -1,15 +1,16 @@
 # E1 Foundation
 
 **Outcome.** A TypeScript package with a `magpi-test` CLI, a validated target manifest,
-an answer-key guard enforced in code, a stack controller that starts the target the way
-its own Playwright config does, and a model port with a fake for tests.
+an answer-key guard enforced in code, an environment attach mode for stacks the target's
+QA CI brings up (plus an optional local stack controller), and a model port with a fake
+for tests.
 
 **Milestone.** M1, day 1.
 
 ---
 
 ### MT-1.1 Scaffold the package
-- [ ] done
+- [x] done
 
 **Outcome.** `npm run precommit` works on an empty-but-real package that mirrors Magpi's
 conventions.
@@ -40,7 +41,7 @@ conventions.
 ---
 
 ### MT-1.2 Target manifest and answer-key guard
-- [ ] done
+- [x] done
 
 **Outcome.** `loadManifest(targetDir)` returns a validated manifest, and `src/files/`
 is the only way to read target files, refusing answer-key paths.
@@ -70,6 +71,9 @@ is the only way to read target files, refusing answer-key paths.
 
 ### MT-1.3 Stack controller
 - [ ] done
+
+Off the M1 critical path since 2026-10-16 (QD11): attach mode (MT-1.5) is the default.
+Keep this for local development; MT-7.5 replaces it as the dogfood path.
 
 **Outcome.** `startStack(manifest)` brings the target up and `stop()` tears it down
 cleanly, using the target's own Playwright `webServer` entries or explicit processes.
@@ -103,7 +107,7 @@ cleanly, using the target's own Playwright `webServer` entries or explicit proce
 ---
 
 ### MT-1.4 Model client port
-- [ ] done
+- [x] done
 
 **Outcome.** Magpi Test's own model calls go through one small interface with an
 OpenRouter adapter and a scripted fake for tests.
@@ -127,5 +131,39 @@ OpenRouter adapter and a scripted fake for tests.
 **Notes for the implementer.**
 - Keep prompts small: a cheap model gets one local problem plus a JSON shape. No
   conversation history.
+
+**Questions.**
+
+---
+
+### MT-1.5 Attach mode (environment contract)
+- [x] done
+
+**Outcome.** `attachEnv(manifest)` returns the effective base URL, a readiness check,
+and an optional `reset()`, from the environment contract a QA CI job sets. Nothing is
+spawned.
+
+**Depends on.** MT-1.2.
+**Touches.** `src/stack/attach.ts`, `src/stack/index.ts`, `src/config/` (manifest
+`start.attach`, `allowedHosts`, `brief`), `tests/unit/attach.test.ts`,
+`tests/integration/attach.test.ts`.
+
+**Done when.**
+- Implements the contract table in [target-manifest.md](../specs/target-manifest.md):
+  `MAGPI_TEST_BASE_URL` overrides `baseURL`; readiness polls `MAGPI_TEST_READY_URL`
+  (default: base URL) until a status below 500, up to `MAGPI_TEST_READY_TIMEOUT_MS`.
+- Readiness timeout throws `EnvNotReadyError`; the CLI maps it to exit code 2 (test).
+- `reset()` runs `MAGPI_TEST_RESET_CMD` with `sh -c` from the target root, logs to
+  `state/logs/reset.log`, and throws `EnvResetError` on non-zero exit; it is `undefined`
+  when the variable is unset.
+- Manifest validation (QD12): `policy: "auto"` with a non-local host not in
+  `allowedHosts` is rejected; `MAGPI_TEST_ENV_KIND=shared` with `auto` is rejected
+  (unit tests for each case).
+- Integration test: a fixture HTTP server started by the test (not by Magpi Test) is
+  attached to; a test asserts no child process was spawned except the reset command.
+
+**Notes for the implementer.**
+- Same readiness rule as MT-1.3 (any status below 500). Share the poll helper.
+- The env contract is passed through unchanged to Playwright on replay (MT-6.2, MT-6.6).
 
 **Questions.**

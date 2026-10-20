@@ -9,7 +9,13 @@ before any story here.
 ---
 
 ### MT-2.1 Upstream Magpi: the ledger records what was acted on
-- [ ] done
+- [x] done
+
+2026-10-12: implemented in
+[naiemk/browser-session-agent#82](https://github.com/naiemk/browser-session-agent/pull/82)
+(from the `naiemy` fork; the agent account has no push access to Magpi). Tick when
+merged and this repo's dependency includes it. Finding: `target.role` is Magpi's
+snapshot role, not ARIA; see magpi-integration.md "The second trap".
 
 **Outcome.** In `browser-session-agent`, each `action` / `failure` ledger event carries
 the target control's role, name, tag (and href / inputType when present) and the typed
@@ -43,7 +49,7 @@ or selected input, so any Magpi trace says what was clicked, not just `e12`.
 ---
 
 ### MT-2.2 Bounded-run adapter
-- [ ] done
+- [x] done
 
 **Outcome.** `runBounded(scenario, manifest)` runs one Magpi `browser-agent run` with
 the scenario's fixed criteria and returns a run record.
@@ -104,7 +110,9 @@ exploration pass and reports whether it was coached.
 ---
 
 ### MT-2.4 Trajectory reader
-- [ ] done
+- [x] done
+
+> 2026-10-17: ledger-target only. The payload-join fallback was not built because MT-2.1 is merged; a target-less action fails the build with a clear error.
 
 **Outcome.** `readTrajectory(goalDir, scenario, manifest)` turns a finished Magpi goal
 into a Trajectory with durable targets.

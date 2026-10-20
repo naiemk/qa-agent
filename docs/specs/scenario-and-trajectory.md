@@ -136,11 +136,16 @@ interface RepairNote { at: string; error: string; change: string }
 2. Map Magpi action kinds: `navigate` → `goto` (path relative to `baseURL`; drop the
    origin), `click` → `click`, `type` → `fill`, `select` → `select`. Other kinds: record
    in `notes` and fail the build with a clear error rather than guessing.
-3. Target from `action.target` (after MT-2.1) or the payload join (fallback):
-   - has a non-empty accessible `name` and a role in Playwright's ARIA role list →
-     `{ by: "role", role, name, exact: true }`;
-   - text input with no name but a placeholder → `placeholder`;
+3. Target from `action.target` (after MT-2.1) or the payload join (fallback). Magpi's
+   `role` is not an ARIA role; first map `tag` + `inputType` + `role` to an ARIA role
+   with the table in [magpi-integration.md](magpi-integration.md) ("The second trap").
+   Then:
+   - password fields (no ARIA role) → `{ by: "label", text: name }`;
+   - a mapped ARIA role and a non-empty `name` → `{ by: "role", role, name, exact: true }`;
+   - text input with no usable name but a placeholder → `placeholder`;
    - otherwise fail the step with `unresolvable-target` and let the repair loop decide.
+   `name` may be the `name` attribute rather than the accessible name; acceptance
+   catches that, and the repair loop switches to `label` or `placeholder`.
 4. Collapse noise: consecutive `fill`s on the same target keep the last; a `click`
    that only focused a field immediately before a `fill` of the same target is dropped.
 5. `waitFor`: when `after.url` path differs from `before.url` path, add

@@ -16,7 +16,7 @@ a new planner.
 ---
 
 ### MT-5.1 Lenses and pass planner
-- [ ] done
+- [x] done
 
 **Outcome.** `planPasses(appMap, options)` returns an ordered, budgeted list of passes,
 each with a Magpi plan file.
