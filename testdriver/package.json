@@ -1,0 +1,23 @@
+{
+  "name": "@naiemk/magpi-test-github-app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Isolated TestDriver-pattern GitHub App for Magpi Test (mention → CLI → comment)",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "serve": "node bin/serve.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "replay-fixture": "node bin/serve.mjs --replay fixtures/sample-mention.json"
+  },
+  "dependencies": {
+    "probot": "^13.4.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.0"
+  }
+}
