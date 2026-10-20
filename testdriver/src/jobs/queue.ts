@@ -1,17 +1,15 @@
 /**
- * In-process job queue (v1). Swap implementation later without touching Magpi Test.
- * Placeholder — days 2–7: enqueue from webhooks, drain via runner.
+ * In-memory job queue for phase 1.
  */
 import type { Job } from "./types.ts";
 
 export interface JobQueue {
   enqueue(job: Job): Promise<void>;
-  /** Block until a job is available (or return undefined if stopped). */
   dequeue(): Promise<Job | undefined>;
   size(): number;
 }
 
-export function createInProcessQueue(): JobQueue {
+export function createInMemoryQueue(): JobQueue {
   const pending: Job[] = [];
   const waiters: Array<(job: Job | undefined) => void> = [];
   let stopped = false;
@@ -35,3 +33,6 @@ export function createInProcessQueue(): JobQueue {
     },
   };
 }
+
+/** Alias used in PLAN.md */
+export const createInProcessQueue = createInMemoryQueue;

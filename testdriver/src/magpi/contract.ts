@@ -1,31 +1,50 @@
 /**
- * Thin boundary types for calling Magpi Test as a CLI subprocess.
- *
- * RULE: this module must not import anything from ../../src (Magpi Test core).
- * If Magpi Test needs a new flag for GitHub App use, add it in Magpi Test and
- * pass it here as a string argv — do not import implementation types.
+ * Thin Magpi Test boundary types.
+ * RULE: do not import anything from ../../src (Magpi Test core).
  */
 
-/** Request mapped onto Magpi Test process env + argv. */
-export interface MagpiRunRequest {
-  /** Absolute path to the target checkout (contains magpi-tests/). */
-  targetDir: string;
-  /** Attach-mode preview URL → MAGPI_TEST_BASE_URL */
-  baseUrl: string;
-  /** Optional → MAGPI_TEST_READY_URL */
-  readyUrl?: string;
+/** Input the GitHub App collects before spawning Magpi Test. */
+export interface MagpiRunInput {
+  /** Repository clone URL (https or git). */
+  repoUrl: string;
+  /** Git ref (branch, tag, or SHA). */
+  ref: string;
+  /** Running app preview URL → MAGPI_TEST_BASE_URL for attach mode. */
+  previewUrl: string;
+  /** Absolute path to a local checkout when already available (dogfood). */
+  targetDir?: string;
   /** Passed as --max-minutes */
   maxMinutes: number;
   /** Absolute path to magpi-test binary (bin/magpi-test.mjs). */
   bin: string;
-  /** Extra env for the child (e.g. OPENROUTER_API_KEY). Never log values. */
-  env: Record<string, string>;
+  /** Extra child env (e.g. OPENROUTER_API_KEY). Never log values. */
+  env?: Record<string, string>;
 }
 
-/**
- * Magpi Test EXIT map (from src/cli/main.ts) — documented here for the adapter
- * only; do not import EXIT from core.
- */
+/** Output summarized back onto the GitHub thread. */
+export interface MagpiRunOutput {
+  /** Whether Magpi Test exited successfully (exit 0). */
+  pass: boolean;
+  /** Short human summary for the PR/issue comment. */
+  summary: string;
+  /** Links to artifacts (report.md, specs, recordings) when known. */
+  artifactLinks: string[];
+  /** Raw process exit code when a CLI was spawned. */
+  exitCode?: number;
+}
+
+/** @deprecated Prefer MagpiRunInput — kept for older job wiring names. */
+export type MagpiRunRequest = MagpiRunInput;
+
+/** @deprecated Prefer MagpiRunOutput */
+export type MagpiRunResult = MagpiRunOutput & {
+  stdout?: string;
+  stderr?: string;
+  reportExcerpt?: string;
+  reportPath?: string;
+  errorMessage?: string;
+};
+
 export const MAGPI_EXIT = {
   ok: 0,
   internal: 1,
@@ -33,14 +52,3 @@ export const MAGPI_EXIT = {
   briefMissing: 3,
   budget: 4,
 } as const;
-
-export interface MagpiRunResult {
-  exitCode: number;
-  stdout: string;
-  stderr: string;
-  /** Truncated contents of magpi-tests/state/report.md if present. */
-  reportExcerpt: string | undefined;
-  /** Absolute path to report.md when found. */
-  reportPath: string | undefined;
-  errorMessage: string | undefined;
-}

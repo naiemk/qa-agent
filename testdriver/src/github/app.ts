@@ -1,22 +1,38 @@
 /**
- * Probot / Octokit factory.
- * Placeholder — days 0–2: return a real Probot instance from APP_ID + key.
+ * Probot factory. Signature verification is handled by Probot's webhook middleware
+ * when serving over HTTP (WEBHOOK_SECRET).
  */
+import { generateKeyPairSync } from "node:crypto";
+import { createProbot, type Probot } from "probot";
 import type { TestdriverConfig } from "../config.ts";
+import { hasAppCredentials } from "../config.ts";
 
-/** Opaque handle until Probot is wired. */
-export interface AppHandle {
-  config: TestdriverConfig;
-  kind: "placeholder";
+/** Ephemeral RSA key for fixture replay when no App credentials are configured. */
+export function ephemeralPrivateKey(): string {
+  const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
+  return privateKey.export({ type: "pkcs1", format: "pem" }).toString();
 }
 
-export async function createApp(config: TestdriverConfig): Promise<AppHandle> {
-  // TODO(days 0–2):
-  //   import { Probot, run } from "probot";
-  //   return new Probot({ appId, privateKey, secret: webhookSecret });
-  if (!config.appId || !config.privateKey || !config.webhookSecret) {
-    // Scaffold / local structure check — credentials filled during dogfood.
-    console.warn("[testdriver] App credentials incomplete; placeholder mode");
+export function createApp(config: TestdriverConfig, opts?: { replay?: boolean }): Probot {
+  const replay = opts?.replay === true;
+  const appId = config.appId || (replay ? "1" : "");
+  const privateKey = config.privateKey || (replay ? ephemeralPrivateKey() : "");
+  const secret = config.webhookSecret || (replay ? "development" : "");
+
+  if (!replay && !hasAppCredentials({ ...config, appId, privateKey, webhookSecret: secret })) {
+    console.warn(
+      "[testdriver] Missing APP_ID / PRIVATE_KEY / WEBHOOK_SECRET — use --replay for offline routing, or fill testdriver/.env",
+    );
   }
-  return { config, kind: "placeholder" };
+
+  return createProbot({
+    overrides: {
+      appId: Number(appId) || 1,
+      privateKey: privateKey || ephemeralPrivateKey(),
+      secret: secret || "development",
+      // Avoid Probot trying to load .env from cwd in surprising ways when we already did.
+    },
+  });
 }
+
+export type { Probot };

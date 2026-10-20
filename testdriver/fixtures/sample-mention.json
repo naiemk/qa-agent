@@ -1,18 +1,27 @@
 {
   "action": "created",
   "comment": {
-    "id": 1,
+    "id": 9001,
     "body": "@magpi-test please QA https://preview.example.com — checkout happy path",
-    "user": { "login": "dogfood-user" }
+    "user": { "login": "dogfood-user", "id": 1 }
   },
   "issue": {
     "number": 42,
-    "pull_request": { "url": "https://api.github.com/repos/example/app/pulls/42" }
+    "title": "Sample PR",
+    "pull_request": {
+      "url": "https://api.github.com/repos/example/app/pulls/42"
+    },
+    "user": { "login": "dogfood-user", "id": 1 }
   },
   "repository": {
+    "id": 1,
     "name": "app",
-    "owner": { "login": "example" },
-    "full_name": "example/app"
+    "full_name": "example/app",
+    "private": false,
+    "default_branch": "main",
+    "clone_url": "https://github.com/example/app.git",
+    "owner": { "login": "example", "id": 2 }
   },
-  "installation": { "id": 12345 }
+  "installation": { "id": 12345 },
+  "sender": { "login": "dogfood-user", "id": 1 }
 }

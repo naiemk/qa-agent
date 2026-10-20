@@ -1,26 +1,29 @@
-# GitHub App manifest sketch (Probot / manual registration).
-# Days 0–2: create a PRIVATE app with these permissions and events.
+# Private GitHub App manifest (days 0–2 dogfood).
+# Register via Probot manifest flow or paste these into GitHub → New GitHub App.
 # Day 7–10: flip visibility to public; share installations/new URL.
-# Week 2+: optional Marketplace listing (see marketplace/LISTING.md).
 #
-# Name / slug: choose something like "magpi-test" (avoid "testdriver" to
-# reduce confusion with TestDriver.ai).
+# Suggested name / slug: magpi-test
+# Install URL once public: https://github.com/apps/magpi-test/installations/new
+
+name: magpi-test
+description: >-
+  Mention @magpi-test on an issue or PR with a preview URL; Magpi Test runs
+  attach-mode QA and posts a summary on the thread.
+url: https://github.com/naiemk/qa-agent
+public: false
 
 default_events:
   - issue_comment
   - pull_request
-  # Optional later: deployment_status for preview URL discovery
 
 default_permissions:
-  # Read PR/issue bodies; write replies and reactions
+  # Comment on issues and PRs; read bodies for the trigger phrase
   issues: write
   pull_requests: write
-  # Open a follow-up PR with accepted specs (optional; can start read-only)
-  contents: write
-  # Optional later for check runs (Ito-like); not required for mention MVP
+  # Post check runs when enabled later
   checks: write
+  # Commit status updates when enabled later
+  statuses: write
+  # Read repository contents only (no write in phase 1)
+  contents: read
   metadata: read
-
-# Suggested description for the App registration form:
-# "Mention @magpi-test on an issue or PR with a preview URL; Magpi Test runs
-#  attach-mode QA and posts a summary. Does not require Marketplace."

@@ -1,38 +1,79 @@
 /**
- * Results / progress comments on the triggering issue or PR.
- * Placeholder — days 2–7: post via Octokit; never include secrets or PEM material.
+ * Post comments on the triggering issue or PR via Octokit.
  */
 import type { JobResult } from "../jobs/types.ts";
 import type { MentionRequest } from "./mention.ts";
 
+/** Minimal Octokit surface used for comments (Probot's context.octokit satisfies this). */
+export interface IssuesOctokit {
+  issues: {
+    createComment(params: {
+      owner: string;
+      repo: string;
+      issue_number: number;
+      body: string;
+    }): Promise<unknown>;
+  };
+}
+
 export interface CommentPoster {
-  /** Ack that work is queued (👀 or short text). */
   acknowledge(mention: MentionRequest): Promise<void>;
-  /** Final summary after Magpi Test exits. */
   postResult(mention: MentionRequest, result: JobResult): Promise<void>;
 }
 
-/** Formats a Markdown body for GitHub. Keep Magpi paths as opaque artifact links. */
 export function formatResultComment(result: JobResult): string {
-  const lines = [
-    `### Magpi Test ${result.ok ? "finished" : "did not succeed"}`,
+  const links =
+    result.artifactLinks.length > 0
+      ? ["", "Artifacts:", ...result.artifactLinks.map((l) => `- ${l}`)].join("\n")
+      : "";
+  return [
+    `### Magpi Test ${result.ok ? "finished" : "update"}`,
     "",
-    `- Exit code: \`${result.exitCode}\``,
-    result.previewUrl ? `- Preview: ${result.previewUrl}` : null,
-    result.reportExcerpt ? ["", "#### Report (excerpt)", "", "```", result.reportExcerpt, "```"].join("\n") : null,
-    result.errorMessage ? ["", `> ${result.errorMessage}`].join("\n") : null,
-  ].filter(Boolean);
-  return lines.join("\n");
+    result.summary,
+    links,
+  ]
+    .filter((line) => line !== undefined)
+    .join("\n")
+    .trim();
 }
 
-/** Placeholder poster — logs only until Octokit is wired. */
+export function createOctokitCommentPoster(octokit: IssuesOctokit): CommentPoster {
+  async function post(mention: MentionRequest, body: string): Promise<void> {
+    await octokit.issues.createComment({
+      owner: mention.repository.owner,
+      repo: mention.repository.name,
+      issue_number: mention.issueOrPrNumber,
+      body,
+    });
+  }
+
+  return {
+    async acknowledge(mention) {
+      await post(
+        mention,
+        `Queued Magpi Test for ${mention.previewUrl ?? "preview URL TBD"} (phase 1: log only).`,
+      );
+    },
+    async postResult(mention, result) {
+      await post(mention, formatResultComment(result));
+    },
+  };
+}
+
+/** Log-only poster for fixture replay / missing credentials. */
 export function createLogCommentPoster(): CommentPoster {
   return {
     async acknowledge(mention) {
-      console.log("[testdriver] ack", mention.repository, mention.issueOrPrNumber);
+      console.log("[testdriver:comments] ack (log only)", {
+        repo: `${mention.repository.owner}/${mention.repository.name}`,
+        number: mention.issueOrPrNumber,
+      });
     },
     async postResult(mention, result) {
-      console.log("[testdriver] result comment", mention.issueOrPrNumber, formatResultComment(result));
+      console.log("[testdriver:comments] result (log only)", {
+        number: mention.issueOrPrNumber,
+        body: formatResultComment(result),
+      });
     },
   };
 }

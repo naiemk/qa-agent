@@ -1,5 +1,6 @@
 /**
- * Module-local configuration. Reads testdriver/.env only — not Magpi Test internals.
+ * Module-local configuration from testdriver/.env (see .env.example).
+ * Does not read Magpi Test internals.
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -12,8 +13,10 @@ export interface TestdriverConfig {
   appId: string;
   privateKey: string;
   webhookSecret: string;
-  mentionHandle: string;
+  /** Comment trigger, e.g. "@magpi-test" or "magpi-test". */
+  triggerPhrase: string;
   magpiTestBin: string;
+  magpiTestBaseUrl: string | undefined;
   magpiTestWorkdir: string | undefined;
   jobMaxMinutes: number;
   openRouterApiKey: string | undefined;
@@ -54,7 +57,12 @@ function resolvePrivateKey(): string {
   return "";
 }
 
-/** Load config. Missing App credentials are allowed in placeholder/scaffold mode. */
+/** Normalize TRIGGER_PHRASE; keep a leading @ for display, match without requiring it. */
+export function normalizeTriggerPhrase(raw: string): string {
+  const trimmed = raw.trim() || "@magpi-test";
+  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+}
+
 export function loadConfig(): TestdriverConfig {
   loadDotEnv();
   const defaultBin = path.join(repoRoot, "bin", "magpi-test.mjs");
@@ -62,8 +70,11 @@ export function loadConfig(): TestdriverConfig {
     appId: process.env.APP_ID ?? "",
     privateKey: resolvePrivateKey(),
     webhookSecret: process.env.WEBHOOK_SECRET ?? "",
-    mentionHandle: (process.env.MENTION_HANDLE ?? "magpi-test").replace(/^@/, ""),
+    triggerPhrase: normalizeTriggerPhrase(
+      process.env.TRIGGER_PHRASE ?? process.env.MENTION_HANDLE ?? "@magpi-test",
+    ),
     magpiTestBin: process.env.MAGPI_TEST_BIN || defaultBin,
+    magpiTestBaseUrl: process.env.MAGPI_TEST_BASE_URL || undefined,
     magpiTestWorkdir: process.env.MAGPI_TEST_WORKDIR || undefined,
     jobMaxMinutes: Number(process.env.JOB_MAX_MINUTES ?? "30") || 30,
     openRouterApiKey: process.env.OPENROUTER_API_KEY || undefined,
@@ -72,4 +83,8 @@ export function loadConfig(): TestdriverConfig {
     moduleRoot,
     repoRoot,
   };
+}
+
+export function hasAppCredentials(config: TestdriverConfig): boolean {
+  return Boolean(config.appId && config.privateKey && config.webhookSecret);
 }
