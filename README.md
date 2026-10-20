@@ -38,6 +38,19 @@ The target needs `magpi-tests/magpi-test.json` (see
 re-run, and areas to re-explore. The onchain-invoice setup (stack script, manifest, CI
 workflow) is in [examples/onchain-invoice/](examples/onchain-invoice/).
 
+## Install on your repo
+
+Install the Magpi Test GitHub App so a comment on an issue or pull request can run QA
+against a preview URL and post the summary back on the thread.
+
+1. Open [Install Magpi Test](https://github.com/apps/magpi-test/installations/new)
+   (App name `magpi-test`) and choose the repositories — public or private.
+2. Follow the numbered steps in [testdriver/INSTALL.md](testdriver/INSTALL.md): webhook
+   URL, install confirmation, trigger phrase, and where results appear.
+
+After install, comment the configured trigger (default `@magpi-test`) with your preview
+URL, for example `@magpi-test please QA https://your-preview.example.com`.
+
 ## Development
 
 `npm run precommit` (typecheck + unit and integration tests). Tests never call a model:
