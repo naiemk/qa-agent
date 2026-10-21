@@ -1,5 +1,5 @@
 /**
- * Route issue_comment and pull_request. Phase 1: log + no-op (no Magpi execution).
+ * Route issue_comment (mention → Magpi) and pull_request (stub; no auto-run yet).
  * Probot verifies webhook signatures when requests hit the HTTP server.
  */
 import type { Probot } from "probot";
@@ -7,16 +7,30 @@ import type { TestdriverConfig } from "../config.ts";
 import { createInMemoryQueue } from "../jobs/queue.ts";
 import { processJob } from "../jobs/runner.ts";
 import type { Job } from "../jobs/types.ts";
-import { createLogCommentPoster } from "./comments.ts";
-import { parseMention } from "./mention.ts";
+import { resolvePreviewUrl } from "../magpi/preview-url.ts";
+import { createOctokitCommentPoster, type CommentPoster } from "./comments.ts";
+import { parseMention, type MentionRequest } from "./mention.ts";
 
 export interface WebhookRegistration {
   queue: ReturnType<typeof createInMemoryQueue>;
 }
 
+async function postHint(comments: CommentPoster, mention: MentionRequest, body: string) {
+  try {
+    await comments.postResult(mention, {
+      ok: false,
+      summary: body,
+      artifactLinks: [],
+      magpi: { pass: false, summary: body, artifactLinks: [] },
+    });
+  } catch (err) {
+    console.error("[testdriver:webhook] hint comment failed", err);
+    console.log("[testdriver:webhook] hint (log fallback)", body);
+  }
+}
+
 export function registerWebhooks(app: Probot, config: TestdriverConfig): WebhookRegistration {
   const queue = createInMemoryQueue();
-  const logComments = createLogCommentPoster();
 
   app.on("issue_comment.created", async (context) => {
     const body = context.payload.comment.body ?? "";
@@ -47,41 +61,55 @@ export function registerWebhooks(app: Probot, config: TestdriverConfig): Webhook
       return;
     }
 
+    const comments = createOctokitCommentPoster(context.octokit);
+    const preview = resolvePreviewUrl(mention);
+    const previewUrl = preview.baseUrl ?? config.magpiTestBaseUrl;
+
     console.log("[testdriver:webhook] trigger phrase matched", {
       phrase: config.triggerPhrase,
-      previewUrl: mention.previewUrl ?? config.magpiTestBaseUrl,
+      previewSource: preview.baseUrl ? preview.source : previewUrl ? "config" : "none",
+      previewUrl: previewUrl ?? null,
       instruction: mention.instruction.slice(0, 120),
     });
 
-    const previewUrl = mention.previewUrl ?? config.magpiTestBaseUrl ?? "";
+    if (!previewUrl) {
+      await postHint(comments, mention, preview.missingHint);
+      return;
+    }
+
+    const mentionWithUrl: MentionRequest = { ...mention, previewUrl };
+    const env: Record<string, string> = {};
+    if (config.openRouterApiKey) {
+      env.OPENROUTER_API_KEY = config.openRouterApiKey;
+    }
+
     const job: Job = {
       id: `comment-${context.payload.comment.id}`,
       createdAt: new Date().toISOString(),
-      mention: { ...mention, previewUrl: previewUrl || mention.previewUrl },
+      mention: mentionWithUrl,
       magpi: {
         repoUrl: mention.repoUrl,
         ref: mention.ref,
-        previewUrl: previewUrl || "https://example.invalid",
+        previewUrl,
         targetDir: config.magpiTestWorkdir,
         maxMinutes: config.jobMaxMinutes,
         bin: config.magpiTestBin,
+        env,
       },
     };
 
     await queue.enqueue(job);
-    // Phase 1: process immediately (log only); days 2–7 use a background worker.
-    await processJob(job, logComments);
+    await processJob(job, comments);
   });
 
   app.on(["pull_request.opened", "pull_request.synchronize", "pull_request.reopened"], async (context) => {
     const pr = context.payload.pull_request;
-    console.log("[testdriver:webhook] pull_request (stub no-op)", {
+    console.log("[testdriver:webhook] pull_request (stub no-op; auto-run not in this pass)", {
       action: context.payload.action,
       repo: context.payload.repository.full_name,
       number: pr.number,
       head: pr.head.sha,
     });
-    // Phase 1: no auto-run on PR events — mention-only.
   });
 
   app.onError((err) => {

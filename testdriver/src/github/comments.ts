@@ -51,7 +51,7 @@ export function createOctokitCommentPoster(octokit: IssuesOctokit): CommentPoste
     async acknowledge(mention) {
       await post(
         mention,
-        `Queued Magpi Test for ${mention.previewUrl ?? "preview URL TBD"} (phase 1: log only).`,
+        `Queued Magpi Test against ${mention.previewUrl ?? "the preview URL"}. Running now…`,
       );
     },
     async postResult(mention, result) {
