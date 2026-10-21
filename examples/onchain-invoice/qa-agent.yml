@@ -54,7 +54,8 @@ jobs:
           MAGPI_TEST_READY_URL: http://127.0.0.1:8080/api/health
         run: |
           test -f magpi-tests/magpi-test.json || cp .qa-agent/examples/onchain-invoice/magpi-test.json magpi-tests/
-          node .qa-agent/bin/magpi-test.mjs run --target . --max-minutes "${{ inputs.max_minutes }}" --max-tokens 3000000
+          test -d magpi-tests/scenarios || cp -r .qa-agent/examples/onchain-invoice/scenarios magpi-tests/
+          node .qa-agent/bin/magpi-test.mjs run --target . --max-minutes "${{ inputs.max_minutes }}" --max-usd 2
 
       - name: Replay accepted specs with no provider key
         if: always()

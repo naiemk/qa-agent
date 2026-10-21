@@ -20,7 +20,7 @@ echo 'OPENROUTER_API_KEY=sk-or-...' > .env
 # 3. Start your app however your QA CI does it, then attach:
 export MAGPI_TEST_BASE_URL=http://localhost:5173
 export MAGPI_TEST_READY_URL=http://127.0.0.1:8080/api/health   # optional
-node bin/magpi-test.mjs run --target ../your-app --max-minutes 30
+node bin/magpi-test.mjs run --target ../your-app --max-minutes 30 --max-usd 1
 ```
 
 The target needs `magpi-tests/magpi-test.json` (see

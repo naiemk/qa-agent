@@ -140,14 +140,15 @@ export async function runScenario(input: Scenario, ctx: PipelineContext): Promis
     totals.tokens += run.tokens;
     totals.costUsd += run.costUsd;
     totals.durationMs += run.durationMs;
+    // Written per attempt: a budget stop before the next attempt must not lose this one.
+    const record: RunRecord & { checks: unknown; attempts: number; stderrTail?: string } = {
+      scenarioId: scenario.id, goalId: run.goalId, status: run.status, ...totals, coachedBy: "none", checks: run.checks, attempts: attempt,
+      ...(run.status === "error" ? { stderrTail: run.stderrTail } : {}),
+    };
+    await writeJson(path.join(ctx.paths.state, "runs", `${scenario.id}.json`), record);
     if (run.status === "success") break;
   }
   run = run!;
-  const record: RunRecord & { checks: unknown; attempts: number; stderrTail?: string } = {
-    scenarioId: scenario.id, goalId: run.goalId, status: run.status, ...totals, coachedBy: "none", checks: run.checks, attempts: attempt,
-    ...(run.status === "error" ? { stderrTail: run.stderrTail } : {}),
-  };
-  await writeJson(path.join(ctx.paths.state, "runs", `${scenario.id}.json`), record);
   if (run.status !== "success" || !run.goalId) {
     const failedChecks = run.checks.filter((c) => !c.passed).map((c) => `${c.predicate}: ${c.detail}`).join("; ");
     const detail = run.status === "error" ? `magpi error: ${run.stderrTail.split("\n").filter(Boolean).slice(-3).join(" | ")}` : `criteria not met after ${attempt} run(s), ${totals.turns} turns: ${failedChecks}`;

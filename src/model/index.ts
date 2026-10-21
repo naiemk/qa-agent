@@ -14,6 +14,8 @@ export interface JsonRequest<T> {
 export interface Usage {
   inputTokens: number;
   outputTokens: number;
+  /** Provider-reported charge, when the provider says (OpenRouter does). */
+  costUsd?: number;
 }
 
 export interface ModelClient {
@@ -40,13 +42,14 @@ export function jsonClient(name: string, complete: CompleteText, promptLog?: str
     async completeJson<T>(request: JsonRequest<T>) {
       const system = `${request.system}\n\nAnswer with JSON only, no prose, matching:\n${request.schemaHint}`;
       let user = request.user;
-      const usage: Usage = { inputTokens: 0, outputTokens: 0 };
+      const usage: Usage = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
       let raw = "";
       for (let attempt = 0; attempt < 2; attempt++) {
         const result = await complete({ system, user });
         raw = result.text;
         usage.inputTokens += result.usage.inputTokens;
         usage.outputTokens += result.usage.outputTokens;
+        usage.costUsd! += result.usage.costUsd ?? 0;
         let parsed: unknown;
         let errors: string[];
         try {

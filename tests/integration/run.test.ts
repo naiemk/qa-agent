@@ -171,6 +171,20 @@ test("a Magpi run that misses its criteria is retried once with the failed check
     assert.equal(record.attempts, 2);
     assert.equal(record.turns, 6);
     assert.match(lines.join("\n"), /guided order-guided: accepted/);
+
+    // A spend stop between attempts exits 4 and keeps the first attempt's record.
+    const stopped: string[][] = [];
+    const write = process.stderr.write;
+    process.stderr.write = (() => true) as typeof process.stderr.write;
+    try {
+      assert.equal(await main(["guided", "--target", root, "--force", "--max-usd", "0.0001"], { model: fakeModel([]), magpiSpawner: fakeMagpi(stopped, { failFirst: true }), out: () => undefined }), 4);
+    } finally {
+      process.stderr.write = write;
+    }
+    assert.equal(stopped.length, 1);
+    const kept = JSON.parse(await readFile(path.join(root, "magpi-tests", "state", "runs", "order-guided.json"), "utf8"));
+    assert.equal(kept.attempts, 1);
+    assert.equal(kept.goalId, "goal_gaveup");
   } finally {
     if (previous === undefined) delete process.env.MAGPI_TEST_BASE_URL;
     else process.env.MAGPI_TEST_BASE_URL = previous;
