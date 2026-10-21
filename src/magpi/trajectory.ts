@@ -22,7 +22,9 @@ interface LedgerEvent {
 
 export class TrajectoryBuildError extends Error {}
 
-const IGNORED_KINDS = new Set(["scroll", "wait"]);
+// `restore` is a marker: Magpi ledgers the navigate and re-type actions that rebuild the
+// checkpoint just before it, so replaying the ledger in order already restores the page.
+const IGNORED_KINDS = new Set(["scroll", "wait", "restore"]);
 const ARIA_ROLES = new Set([
   "button", "link", "textbox", "searchbox", "checkbox", "radio", "combobox", "listbox", "option", "tab", "menuitem",
   "menuitemcheckbox", "menuitemradio", "switch", "slider", "spinbutton", "treeitem", "gridcell", "row", "cell", "heading", "img", "dialog",
@@ -132,6 +134,8 @@ export function buildTrajectory(events: LedgerEvent[], options: BuildOptions): T
       action = { kind: "select", target: targetFor(event.action.target), value: { literal: event.action.input ?? "" } };
     } else if (kind === "check") {
       action = { kind: "check", target: targetFor(event.action.target) };
+    } else if (kind === "upload") {
+      throw new TrajectoryBuildError("upload needs a fixture file to replay (M3); not supported in M1");
     } else {
       throw new TrajectoryBuildError(`unsupported Magpi action kind "${kind}"`);
     }

@@ -75,6 +75,12 @@ Start the stack. For each static route without path params (and the base URL):
 
 Never submit forms here. Output: `state/live-survey.json`.
 
+Trap (found 2026-10-20): under tsx, esbuild's keepNames wraps functions inside a
+`page.evaluate` callback in `__name(...)`, which does not exist in the page, so every
+page failed with `ReferenceError: __name is not defined` and the first live map was
+built from route names alone. The survey context installs a no-op `__name` init script.
+Any new `page.evaluate` with nested functions needs the same.
+
 ### 3. App map and critical paths (one or two cheap model calls)
 
 Input: the static scan summary and live survey summary (trimmed: route, title,

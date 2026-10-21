@@ -36,6 +36,9 @@ export function surveyableRoutes(routes: string[]): string[] {
 export async function liveSurvey(baseURL: string, routes: string[], options: { locale?: string; followLinks?: boolean } = {}): Promise<LiveSurvey> {
   const browser = await chromium.launch();
   const context = await browser.newContext({ locale: options.locale ?? "en-US" });
+  // tsx (esbuild keepNames) wraps the page.evaluate callback's inner functions in
+  // `__name(...)`, a helper that exists in Node but not in the page.
+  await context.addInitScript({ content: "globalThis.__name ??= (fn) => fn;" });
   const pages: SurveyedPage[] = [];
   const seen = new Set<string>();
   const queue: { route: string; source: "scan" | "live" }[] = surveyableRoutes(routes).map((route) => ({ route, source: "scan" }));

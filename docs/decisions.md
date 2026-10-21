@@ -169,3 +169,20 @@ MT-3.2 visits parameter-free routes with Playwright, reads headings, links, form
 buttons and fields in the page, follows home-page links one level, and blocks non-GET
 document requests. No Magpi run and no tokens. `surveyAffordances` stays internal to
 Magpi; revisit only if the survey misses things Magpi's perception would catch.
+
+## QD20. A bounded run that misses its criteria gets one retry with the failed checks — accepted (2026-10-20)
+
+When Magpi ends a run with `status: failed`, magpi-test starts one more bounded run on
+the same scenario with the same criteria, adding the failed checks and "carry out every
+step" to the goal text (`--magpi-attempts`, default 2). Errors are not retried. The run
+record sums turns, tokens and cost over attempts and says how many there were.
+Why: the first live run lost a pass because Magpi's model stopped after one look at the
+page. The criteria stay fixed (invariant 5); only the instructions to the explorer change.
+
+## QD21. `run` reuses an existing app map — accepted (2026-10-20)
+
+`magpi-test run` skips discovery when `state/app-map.json` exists and the saved live
+survey reached at least one page. `--rediscover` (or `magpi-test discover`) rebuilds it.
+Why: pass ids come from the map's critical path ids, which a fresh model call may rename,
+so rediscovering on every run re-drafts and re-pays for passes already done. M2 replaces
+this with proper knowledge reuse.

@@ -37,7 +37,7 @@ Commands:
   guided     magpi-tests/scenarios/*.md → accepted specs
   explore    Critical paths × lenses → candidate scenarios → accepted specs
   accept     Re-run acceptance for pending trajectories (--all replays accepted specs)
-  run        init + discover + guided + explore + manual + report (what the QA CI job runs)
+  run        init + discover (once) + guided + explore + manual + report (what the QA CI job runs)
   impact     Changed files since --base <ref> → areas, specs to re-run, areas to re-explore
 
 Options:
@@ -46,6 +46,8 @@ Options:
   --paths a,b           Only these critical path ids
   --lenses x,y          Only these lenses (${LENSES.join(", ")})
   --max-turns <n>       Magpi turns per bounded run (default 24)
+  --magpi-attempts <n>  Bounded runs per scenario when criteria are not met (default 2)
+  --rediscover          run: rebuild state/app-map.json even if it exists
   --max-tokens <n>      Stop cleanly when this many tokens are spent (exit 4)
   --max-minutes <n>     Stop cleanly after this many minutes (exit 4)
   --model <id>          Magpi Test's own model (default MAGPI_TEST_MODEL or google/gemini-2.5-flash)
@@ -276,6 +278,7 @@ async function pipelineContext(session: Session): Promise<PipelineContext> {
     magpi: {
       model: (session.flags["magpi-model"] as string | undefined) ?? session.manifest.model?.magpi,
       maxTurns: Number(session.flags["max-turns"] ?? 24),
+      attempts: Number(session.flags["magpi-attempts"] ?? 2),
       spawner: session.deps.magpiSpawner,
       headed: Boolean(session.flags.headed),
     },
@@ -380,7 +383,16 @@ async function stability(session: Session, env: AttachedEnv): Promise<string> {
 async function run(session: Session): Promise<number> {
   const brief = await init(session);
   if (brief.code !== EXIT.ok) return brief.code;
-  await discover(session, brief.brief);
+  // Pass ids come from the map's path ids, which a fresh model call may rename; reusing
+  // the map keeps earlier passes recognised instead of paying for near-duplicates.
+  const mapFile = path.join(session.paths.state, "app-map.json");
+  const survey = await readJson<LiveSurvey>(path.join(session.paths.state, "live-survey.json"));
+  const surveyed = survey?.pages.some((p) => !p.error) ?? false;
+  if (!session.flags.rediscover && existsSync(mapFile) && surveyed) {
+    session.out(`app map: reusing ${path.relative(session.paths.root, mapFile)} (--rediscover to rebuild)`);
+  } else {
+    await discover(session, brief.brief);
+  }
   await guided(session, []);
   await explore(session);
   const env = await environment(session);
