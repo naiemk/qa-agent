@@ -25,6 +25,7 @@ export function openRouterClient(options: { model?: string; promptLog?: string; 
         temperature: 0.2,
         max_tokens: MAX_OUTPUT_TOKENS,
         response_format: { type: "json_object" },
+        usage: { include: true },
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
@@ -36,11 +37,11 @@ export function openRouterClient(options: { model?: string; promptLog?: string; 
     if (!response.ok) throw new Error(`OpenRouter ${response.status}: ${(await response.text()).slice(0, 500)}`);
     const body = (await response.json()) as {
       choices?: { message?: { content?: string } }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
     };
     return {
       text: body.choices?.[0]?.message?.content ?? "",
-      usage: { inputTokens: body.usage?.prompt_tokens ?? 0, outputTokens: body.usage?.completion_tokens ?? 0 },
+      usage: { inputTokens: body.usage?.prompt_tokens ?? 0, outputTokens: body.usage?.completion_tokens ?? 0, costUsd: body.usage?.cost ?? 0 },
     };
   }, options.promptLog);
 }

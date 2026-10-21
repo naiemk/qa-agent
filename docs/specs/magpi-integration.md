@@ -256,6 +256,22 @@ decides and records it in `decisions.md`.
 
 ## Corrections
 
+- 2026-10-21 (first guided live run): two Magpi perception/tool gaps made every fill on
+  onchain-invoice's `/create` a silent no-op, fixed upstream on `fix/act-type-text`:
+  (1) the run-loop `act` tool reads `text` for `type`; a model that put the string in
+  `value` typed `""`, and the read-back accepted it because an empty want matches
+  anything, so the ledger had no `input` and the form stayed empty. (2) Control names
+  only used a wrapping `<label>`, not `<label for>` or `aria-labelledby`, so fields were
+  named by placeholder ("Northstar Hosting") while Playwright's accessible name is the
+  label ("Who are you billing?"); emitted role locators would not match.
+  (3) On a commit (Magpi classifies "Create pay link" as leaving the session), `act`'s
+  `expect` is a precondition (D23), not a postcondition. The model attached the outcome
+  ("a dialog is open") to the click, the gate refused it, and the run stopped with the
+  form filled. The refusal now tells the model to act without `expect` and then `check`.
+  After (1) and (2), the scenario was accepted on its second bounded run.
+- 2026-10-21: Magpi's `--json` `tokens` is the provider's `totalTokens` (it includes
+  reasoning tokens for Gemini 2.5 Flash: 83,680 reported vs about 30k input+output);
+  `costUsd` matched OpenRouter's billed usage ($0.0164). Budget on `costUsd`.
 - 2026-10-20: the ledger also records `restore` and `upload` actions (`ActionKind` in
   `src/core/types.ts`). A `restore` event is a marker: `restoreCheckpoint` first ledgers
   its own `navigate` to the checkpoint URL and one `type`/`select` per saved field

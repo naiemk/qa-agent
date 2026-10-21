@@ -186,3 +186,12 @@ survey reached at least one page. `--rediscover` (or `magpi-test discover`) rebu
 Why: pass ids come from the map's critical path ids, which a fresh model call may rename,
 so rediscovering on every run re-drafts and re-pays for passes already done. M2 replaces
 this with proper knowledge reuse.
+
+## QD22. Budgets are in provider-reported dollars — accepted (2026-10-21)
+
+`--max-usd` stops a run (exit 4) when Magpi's reported `costUsd` plus OpenRouter's
+`usage.cost` for magpi-test's own calls reaches the cap. `--max-tokens` stays, but token
+counts are not comparable across models (reasoning tokens inflate them) and are not what
+the user pays. Budgets are checked between calls, so one Magpi run can overshoot by its
+own cost (about $0.02 at 16 turns on Gemini 2.5 Flash).
+

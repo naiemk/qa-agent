@@ -48,6 +48,7 @@ Options:
   --max-turns <n>       Magpi turns per bounded run (default 24)
   --magpi-attempts <n>  Bounded runs per scenario when criteria are not met (default 2)
   --rediscover          run: rebuild state/app-map.json even if it exists
+  --max-usd <n>         Stop cleanly when provider-reported spend reaches $n (exit 4)
   --max-tokens <n>      Stop cleanly when this many tokens are spent (exit 4)
   --max-minutes <n>     Stop cleanly after this many minutes (exit 4)
   --model <id>          Magpi Test's own model (default MAGPI_TEST_MODEL or google/gemini-2.5-flash)
@@ -158,6 +159,7 @@ async function dispatch(args: Args, deps: Deps, out: (line: string) => void): Pr
   const manifest = await loadManifest(target);
   const budget = createBudget({
     maxTokens: args.flags["max-tokens"] ? Number(args.flags["max-tokens"]) : undefined,
+    maxUsd: args.flags["max-usd"] ? Number(args.flags["max-usd"]) : undefined,
     maxMinutes: args.flags["max-minutes"] ? Number(args.flags["max-minutes"]) : undefined,
   });
   const session: Session = { paths, manifest, budget, out, flags: args.flags, deps };

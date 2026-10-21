@@ -50,3 +50,26 @@ test("a 402 from OpenRouter is a ProviderCreditError and requests cap max_tokens
     globalThis.fetch = realFetch;
   }
 });
+
+test("OpenRouter cost is requested, carried in usage, and stops a --max-usd budget", async () => {
+  const { createBudget, meteredModel, BudgetExceeded } = await import("../../src/budget.ts");
+  const realFetch = globalThis.fetch;
+  let body: { usage?: { include?: boolean } } = {};
+  globalThis.fetch = (async (_url: string, init: { body: string }) => {
+    body = JSON.parse(init.body);
+    return Response.json({ choices: [{ message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 100, completion_tokens: 10, cost: 0.003 } });
+  }) as unknown as typeof fetch;
+  try {
+    const budget = createBudget({ maxUsd: 0.005 });
+    const client = meteredModel(openRouterClient({ env: { OPENROUTER_API_KEY: "test" } }), budget);
+    const ok = { ...request, validate: () => [] };
+    const first = await client.completeJson(ok);
+    assert.equal(body.usage?.include, true);
+    assert.equal(first.usage.costUsd, 0.003);
+    await client.completeJson(ok);
+    assert.equal(budget.costUsd, 0.006);
+    await assert.rejects(client.completeJson(ok), BudgetExceeded);
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

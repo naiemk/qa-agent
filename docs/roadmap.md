@@ -71,6 +71,12 @@ must fit in the two days.
 > no retry (QD20), `restore` actions broke trajectory building, and `run` re-planned
 > passes on every invocation (QD21).
 
+> 2026-10-21: first live accepted spec. `create-pay-link` (a guided scenario, kept in
+> `examples/onchain-invoice/scenarios/`) passed 3/3 acceptance and 3/3 plain
+> `npx playwright test` with no key. Cost: $0.020 in Magpi for 2 bounded runs, $0 for
+> magpi-test (human criteria, no repair). It needed three Magpi fixes (see
+> magpi-integration.md corrections, 2026-10-21) and QD22 (`--max-usd`).
+
 - [ ] `magpi-test discover` on onchain-invoice writes an app map with areas and ranked critical paths, without reading answer-key files (MT-3.3, MT-1.2 guard test).
 - [ ] At least 3 guided scenarios become accepted specs (MT-7.2).
 - [ ] At least 5 explored specs accepted, from at least 2 lenses, including at least one edge case (validation error, empty state, or invalid link) (MT-7.3).

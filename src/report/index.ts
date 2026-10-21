@@ -34,7 +34,7 @@ export function renderReport(input: { target: string; baseURL: string; map?: App
     `| Skipped (fixtures) | ${by("skipped").length} |`,
     `| Pending | ${scenarios.filter((s) => ["pending", "running", "trajectory"].includes(s.status)).length} |`,
     `| Tokens (Magpi Test / Magpi) | ${budget.tokens.model} / ${budget.tokens.magpi} |`,
-    `| Magpi cost | $${budget.costUsd.toFixed(4)} |`,
+    `| Spend (provider-reported) | $${budget.costUsd.toFixed(4)} |`,
     `| Tokens per accepted spec | ${accepted.length ? Math.round(totalTokens / accepted.length) : "-"} |`,
     `| Magpi turns per accepted spec | ${accepted.length ? (actions / accepted.length).toFixed(1) : "-"} |`,
     `| Passes coached by Magpi | ${runs.filter((r) => r.coachedBy === "magpi").length} of ${runs.length} |`,
