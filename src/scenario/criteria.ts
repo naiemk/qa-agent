@@ -7,7 +7,7 @@ import { validatePredicate, type Predicate } from "./types.ts";
 export const CRITERIA_RULES = [
   "Criteria are checked in code on the final page, so they must be exact visible strings or URL fragments from the app.",
   "Allowed kinds: url_includes, title_includes, text_visible, text_absent, control_exists {role,name}, control_absent, value_equals {name,text}, value_includes, dialog_open {open}.",
-  "Include at least one criterion that is FALSE on the start page before any action (otherwise a do-nothing run passes).",
+  "Include at least one criterion that is FALSE on the start page before any action (otherwise a do-nothing run passes): text or a URL fragment the result shows, not the disappearance of start-page text.",
   "Never use values that change per run: addresses (0x...), ids, UUIDs, hashes, timestamps, long numbers. Assert the stable label instead.",
   "Prefer 1-3 criteria. Do not use any, not, or ref_exists.",
 ].join("\n");

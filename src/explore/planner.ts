@@ -1,5 +1,6 @@
 import type { AppMap, CriticalPath } from "../discover/app-map.ts";
-import type { LiveSurvey } from "../discover/live-survey.ts";
+import { groundingErrors, knownText, linkedPages, relatedStrings, withoutStartTextAbsent, type AppText } from "../discover/app-text.ts";
+import type { LiveSurvey, SurveyedPage } from "../discover/live-survey.ts";
 import type { ModelClient } from "../model/index.ts";
 import { CRITERIA_RULES, validateCriteria } from "../scenario/criteria.ts";
 import { LENSES, slug, type Lens, type Predicate, type Scenario } from "../scenario/types.ts";
@@ -45,9 +46,16 @@ interface DraftScenario {
  * Writes the candidate scenario for one pass from what the start page advertises.
  * Steps are guidance for Magpi, not code; criteria are fixed here, before the run.
  */
-export async function draftScenario(pass: Pass, survey: LiveSurvey, model: ModelClient, avoid: string[] = []): Promise<Scenario> {
+const pageLine = (p: SurveyedPage) => `${p.route} "${p.title}" — headings: ${p.headings.slice(0, 6).join(" | ")} — buttons: ${p.buttons.slice(0, 8).join(", ")}`;
+
+export async function draftScenario(pass: Pass, survey: LiveSurvey, model: ModelClient, avoid: string[] = [], uiStrings: string[] = []): Promise<Scenario> {
   const page = survey.pages.find((p) => p.route === pass.path.startPath.split("?")[0]);
   const lens = LENS_INSTRUCTIONS[pass.lens];
+  const appText: AppText = { pages: survey.pages.filter((p) => !p.error), strings: uiStrings };
+  const grounded = appText.pages.length > 0 || uiStrings.length > 0;
+  const isKnown = knownText(appText);
+  const linked = linkedPages(survey, pass.path.startPath);
+  const messages = relatedStrings(uiStrings, `${pass.path.title} ${pass.path.why} ${pass.path.startPath}`, pass.lens);
   const { value } = await model.completeJson<DraftScenario>({
     purpose: "explore.scenario",
     system:
@@ -60,16 +68,26 @@ export async function draftScenario(pass: Pass, survey: LiveSurvey, model: Model
       page
         ? `Start page "${page.title}"\nheadings: ${page.headings.join(" | ")}\nbuttons: ${page.buttons.join(", ")}\nfields: ${page.fields.join(", ")}\nlinks: ${page.links.slice(0, 30).map((l) => `${l.name} -> ${new URL(l.href).pathname}`).join(", ")}`
         : "Start page was not surveyed.",
+      linked.length ? `Pages the start page links to:\n${linked.map(pageLine).join("\n")}` : "",
+      messages.length ? `Text the app can show somewhere (from its source; it may belong to other pages):\n${messages.map((m) => `- ${m}`).join("\n")}` : "",
+      grounded
+        ? "Every text in criteria must be copied exactly from the page lists or the source text above. For where you end up, use text from the start page or the pages it links to; use source text only for a validation or error message this page shows."
+        : "",
       avoid.length ? `Already covered, do something different:\n${avoid.map((a) => `- ${a}`).join("\n")}` : "",
-    ].join("\n\n"),
+    ].filter(Boolean).join("\n\n"),
     schemaHint: '{"title":"Create invoice with a custom payout address","preconditions":[],"steps":["Enter amount 25","Click Create invoice"],"expected":["The pay link page is shown"],"criteria":[{"kind":"url_includes","text":"/pay"}]}',
     validate: (v) => {
       const d = v as DraftScenario;
       if (!d || !d.title || !Array.isArray(d.steps) || !Array.isArray(d.expected)) return ["need title, steps[], expected[], criteria[]"];
       if (d.steps.length === 0 || d.steps.length > 12) return ["steps must have 1-12 items"];
-      return validateCriteria(d.criteria);
+      const errors = validateCriteria(d.criteria);
+      if (errors.length || !grounded) return errors;
+      const grounding = groundingErrors(d.criteria, isKnown);
+      if (grounding.length) return grounding;
+      return withoutStartTextAbsent(d.criteria, page).kept.length ? [] : ["every criterion only says start-page text disappears; add text or a URL the result shows"];
     },
   });
+  const { kept, dropped } = withoutStartTextAbsent(value.criteria, page);
   return {
     schemaVersion: 1,
     id: slug(`${pass.path.id}-${pass.lens}-${value.title}`, 70),
@@ -82,10 +100,11 @@ export async function draftScenario(pass: Pass, survey: LiveSurvey, model: Model
     preconditions: value.preconditions ?? [],
     steps: value.steps,
     expected: value.expected,
-    criteria: value.criteria,
+    criteria: kept,
     criteriaStatus: "compiled",
     priority: pass.path.priority,
     status: "pending",
+    ...(dropped.length ? { notes: [`dropped start-page text_absent: ${dropped.map((p) => JSON.stringify(p)).join(", ")}`] } : {}),
   };
 }
 

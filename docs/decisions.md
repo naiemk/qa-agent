@@ -195,3 +195,31 @@ counts are not comparable across models (reasoning tokens inflate them) and are 
 the user pays. Budgets are checked between calls, so one Magpi run can overshoot by its
 own cost (about $0.02 at 16 turns on Gemini 2.5 Flash).
 
+## QD23. Explore criteria are grounded in the app's own text — accepted (2026-10-27)
+
+The drafter sees the start page, the surveyed pages it links to, and source strings
+related to the path and lens (static scan `uiStrings`: capitalised string literals and
+JSX text). Every `text_visible`, `text_absent`, `title_includes` and control name in its
+criteria must appear somewhere in that corpus, case-insensitively; `text_absent` may
+not quote start-page text. Violations go back to the model once, before any Magpi spend.
+Why: on TC the ungrounded drafter accepted 0 of 9 passes. It asserted text that does not
+exist ("No invoices found", "Terms of Service" for "Terms of Use") or start-page text
+that layout keeps on the next page. Criteria are still fixed before the run and checked
+in code (invariant 5); grounding only rejects criteria that cannot be true.
+
+## QD24. Magpi Test state is committed with the target — accepted (2026-10-27)
+
+`magpi-tests/.gitignore` is written by magpi-test. It keeps the map, survey, scenarios,
+trajectories, passes, runs, report, specs, manual cases and brief in git, and ignores
+Magpi's goal store, logs, pending specs, test results, prompt logs and the static scan
+(rebuilt for free on every `run`). The QA workflow opens a PR with those changes.
+Why: CI has no other memory between runs; without it every run rediscovers, re-pays and
+re-drafts near-duplicates (QD21 only helps within one checkout).
+
+## QD25. Environment quarantines are retried — accepted (2026-10-27)
+
+A scenario quarantined with `suspected: "environment"` (stack down, Magpi crashed) is
+not "done": the next `guided`/`explore` retries it without `--force`.
+`explore --retry-quarantined` also retries other quarantines without redoing accepted
+passes.
+
