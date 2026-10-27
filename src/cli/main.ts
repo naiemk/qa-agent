@@ -54,6 +54,7 @@ Options:
   --model <id>          Magpi Test's own model (default MAGPI_TEST_MODEL or google/gemini-2.5-flash)
   --magpi-model <id>    Model for Magpi browsing (default: manifest model.magpi or Magpi's choice)
   --force               Redo scenarios already accepted or quarantined
+  --retry-quarantined   explore: redo quarantined passes only
   --headed              Show the browser during Magpi runs
   --base <ref>          impact: git ref to diff against
 
@@ -245,12 +246,18 @@ async function init(session: Session): Promise<{ code: number; brief?: QaBrief }
   return { code: EXIT.ok, brief };
 }
 
-async function discover(session: Session, brief?: QaBrief): Promise<AppMap> {
+/** Free and deterministic, so it reruns even when the map is reused (explore grounds on it). */
+async function scanSource(session: Session): Promise<StaticScan> {
   const files = fileAccess(session.paths.root, session.manifest.read.answerKey);
   const helperGlobs = session.manifest.read.include.filter((glob) => /helper/i.test(glob));
   const scan: StaticScan = await staticScan(files, session.manifest.read.include, helperGlobs);
   await writeJson(path.join(session.paths.state, "static-scan.json"), scan);
-  session.out(`static scan: ${scan.routes.length} routes, ${scan.docs.length} docs, ${scan.helpers.length} helper files`);
+  session.out(`static scan: ${scan.routes.length} routes, ${scan.docs.length} docs, ${scan.helpers.length} helper files, ${scan.uiStrings.length} UI strings`);
+  return scan;
+}
+
+async function discover(session: Session, brief?: QaBrief): Promise<AppMap> {
+  const scan = await scanSource(session);
   const env = await environment(session);
   const routes = scan.routes.map((r) => r.path);
   const survey = await (session.deps.survey ?? ((base, r, locale) => liveSurvey(base, r, { locale })))(env.baseURL, routes, session.manifest.locale);
@@ -290,7 +297,9 @@ async function pipelineContext(session: Session): Promise<PipelineContext> {
   };
 }
 
-const done = (s?: Scenario) => s && ["accepted", "quarantined", "skipped"].includes(s.status);
+// An environment quarantine says nothing about the scenario (the stack was down or Magpi
+// broke), so it is retried rather than kept.
+const done = (s?: Scenario) => s && (["accepted", "skipped"].includes(s.status) || (s.status === "quarantined" && s.quarantine?.suspected !== "environment"));
 
 async function guided(session: Session, only: string[]): Promise<void> {
   let names: string[] = [];
@@ -335,11 +344,13 @@ async function explore(session: Session): Promise<void> {
   }
   session.out(`explore: ${passes.length} passes, ${skipped.length} critical paths skipped for fixtures`);
   const existing = await readRecords<Scenario>(path.join(session.paths.state, "scenarios"));
+  const scan = await readJson<StaticScan>(path.join(session.paths.state, "static-scan.json"));
   for (const pass of passes) {
     const passFile = path.join(session.paths.state, "passes", `${pass.id}.json`);
     const record = await readJson<{ scenarioId: string }>(passFile);
     const prior = record ? existing.find((s) => s.id === record.scenarioId) : undefined;
-    if (done(prior) && !session.flags.force) {
+    const retry = session.flags.force || (session.flags["retry-quarantined"] && prior?.status === "quarantined");
+    if (done(prior) && !retry) {
       session.out(`pass ${pass.id}: ${prior!.status} (kept)`);
       continue;
     }
@@ -347,7 +358,7 @@ async function explore(session: Session): Promise<void> {
     const avoid = existing.filter((s) => s.path === pass.path.id).map((s) => s.title);
     let scenario: Scenario;
     try {
-      scenario = await draftScenario(pass, ctx.survey ?? { schemaVersion: 1, baseURL: ctx.env.baseURL, implementation: "playwright", pages: [] }, ctx.model, avoid);
+      scenario = await draftScenario(pass, ctx.survey ?? { schemaVersion: 1, baseURL: ctx.env.baseURL, implementation: "playwright", pages: [] }, ctx.model, avoid, scan?.uiStrings ?? []);
     } catch (error) {
       if (error instanceof ProviderCreditError) throw error;
       session.out(`pass ${pass.id}: could not draft a scenario (${(error as Error).message.split("\n")[0]})`);
@@ -392,6 +403,7 @@ async function run(session: Session): Promise<number> {
   const surveyed = survey?.pages.some((p) => !p.error) ?? false;
   if (!session.flags.rediscover && existsSync(mapFile) && surveyed) {
     session.out(`app map: reusing ${path.relative(session.paths.root, mapFile)} (--rediscover to rebuild)`);
+    await scanSource(session);
   } else {
     await discover(session, brief.brief);
   }

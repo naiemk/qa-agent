@@ -52,6 +52,26 @@ acceptance, which is the "clean enough state" we want.
   (`examples/onchain-invoice/start-stack.sh` works the same in CI on Node 24).
 - `npm run commerce:build` must run first; `boot.mjs` starts `commerce-dist/`.
 
+### Local run notes (2026-10-27)
+
+- The local checkout moved from `~/nk/onchain-invoice` to `~/nk/trustless-commerce`
+  (same remote). A stack started before the rename keeps running but Vite serves 404
+  for every page; restart it from the new path.
+- `start-stack.sh` takes every port from the environment (`E2E_UI_PORT`,
+  `E2E_API_PORT`, `E2E_HARDHAT_PORT`, `E2E_{BUNDLER,SWEEPER,DEPLOYER}_TICK_PORT`), so a
+  second stack can run beside an old one (used: 5273 / 8180 / 8645 / 18841-3).
+- TC's own CI runs on Node 22; the QA job runs everything on Node 24 (magpi-test needs
+  24, and `npm ci` then builds `better-sqlite3` for it).
+
+### Product findings from Magpi Test (2026-10-27)
+
+Found by free Playwright probes while writing guided scenarios; not yet filed upstream.
+- `/create` accepts any amount: `abc`, `0` and `-5` enable "Create pay link", produce
+  `price=abc|0|-5` links, and the checkout shows "Invoice $abc" / "$0" / "$-5".
+- `/pay?price=10.00` with no `to` shows a full checkout with "Continue to payment",
+  while `to=0x123` is rejected with "Pay link missing". Possibly a default merchant by
+  design; worth confirming.
+
 ### QA CI job (attach mode, MT-7.5)
 
 The primary path from 2026-10-16 (QD11). A new workflow

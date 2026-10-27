@@ -146,6 +146,9 @@ test("magpi-test run: brief → map → guided + explore → accepted specs, man
     assert.match(secondLines.join("\n"), /app map: reusing/);
     assert.ok(!secondModel.requests.some((r) => r.system.includes("mapping a web app")));
     assert.ok(existsSync(path.join(mt, "playwright.config.ts")));
+    const ignore = await readFile(path.join(mt, ".gitignore"), "utf8");
+    assert.match(ignore, /^state\/magpi-home\/$/m);
+    assert.doesNotMatch(ignore, /app-map|scenarios|trajectories|specs/);
   } finally {
     if (previous === undefined) delete process.env.MAGPI_TEST_BASE_URL;
     else process.env.MAGPI_TEST_BASE_URL = previous;
@@ -171,6 +174,18 @@ test("a Magpi run that misses its criteria is retried once with the failed check
     assert.equal(record.attempts, 2);
     assert.equal(record.turns, 6);
     assert.match(lines.join("\n"), /guided order-guided: accepted/);
+
+    // An environment quarantine is retried without --force; other quarantines are kept.
+    const stateFile = path.join(root, "magpi-tests", "state", "scenarios", "order-guided.json");
+    const saved = JSON.parse(await readFile(stateFile, "utf8"));
+    await writeFile(stateFile, JSON.stringify({ ...saved, status: "quarantined", quarantine: { suspected: "environment", error: "stack down" } }));
+    const retried: string[][] = [];
+    assert.equal(await main(["guided", "--target", root], { model: fakeModel([]), magpiSpawner: fakeMagpi(retried), out: () => undefined }), 0);
+    assert.equal(retried.length, 1);
+    await writeFile(stateFile, JSON.stringify({ ...saved, status: "quarantined", quarantine: { suspected: "exploration", error: "criteria not met" } }));
+    const notRetried: string[][] = [];
+    assert.equal(await main(["guided", "--target", root], { model: fakeModel([]), magpiSpawner: fakeMagpi(notRetried), out: () => undefined }), 0);
+    assert.equal(notRetried.length, 0);
 
     // A spend stop between attempts exits 4 and keeps the first attempt's record.
     const stopped: string[][] = [];

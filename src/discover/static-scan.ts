@@ -1,5 +1,6 @@
 import path from "node:path";
 import type { FileAccess } from "../files/index.ts";
+import { uiStrings } from "./app-text.ts";
 
 export interface ScannedRoute {
   path: string;
@@ -16,6 +17,8 @@ export interface StaticScan {
   docs: { file: string; headings: string[] }[];
   helpers: { file: string; exports: string[] }[];
   locatorHints: { file: string; testIds: string[]; ariaLabels: string[] }[];
+  /** UI-looking string literals and JSX text from source, for grounding criteria. */
+  uiStrings: string[];
 }
 
 const SOURCE_EXT = /\.(tsx?|jsx?|mjs)$/;
@@ -161,5 +164,8 @@ export async function staticScan(files: FileAccess, include: string[], helperGlo
     if (testIds.length || ariaLabels.length) locatorHints.push({ file, testIds, ariaLabels });
   }
 
-  return { schemaVersion: 1, routes: [...unique.values()].sort((a, b) => a.path.localeCompare(b.path)), docs, helpers, locatorHints };
+  const strings = new Set<string>();
+  for (const text of texts.values()) for (const s of uiStrings(text)) strings.add(s);
+
+  return { schemaVersion: 1, routes: [...unique.values()].sort((a, b) => a.path.localeCompare(b.path)), docs, helpers, locatorHints, uiStrings: [...strings].sort() };
 }

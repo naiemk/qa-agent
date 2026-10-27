@@ -1,20 +1,52 @@
-# QA CI job for onchain-invoice (MT-7.5). Copy to .github/workflows/qa-agent.yml in the
-# onchain-invoice repo. The job owns the environment; magpi-test only attaches (QD11).
+# QA agent for onchain-invoice / Trustless Commerce (MT-7.5). Copy to
+# .github/workflows/qa-agent.yml in the target repo. The job owns the environment;
+# magpi-test only attaches (QD11).
+#
+# - Manual run: full `magpi-test run` under a dollar cap; new specs, manual cases and
+#   state come back as a PR into the branch it ran on.
+# - Every PR: accepted specs replay with no AI as a regression gate; magpi-test resumes
+#   from the committed state under a small cap, comments its report on the PR, and opens
+#   a follow-up PR into the PR branch when it added or changed anything.
+# Fork PRs get the replay only (no secrets, read-only token).
+#
+# Setup: add the OPENROUTER_API_KEY secret, and enable Settings → Actions → General →
+# "Allow GitHub Actions to create and approve pull requests".
 name: QA agent
 
 on:
   workflow_dispatch:
     inputs:
+      max_usd:
+        description: "Spend cap in USD (provider-reported)"
+        default: "1"
       max_minutes:
-        description: "Time budget for the run"
+        description: "Time budget"
         default: "45"
+  pull_request:
+    paths: ["ui/**", "commerce/**", "magpi-tests/**"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: qa-agent-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   qa-agent:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      MAGPI_TEST_BASE_URL: http://localhost:5173
+      MAGPI_TEST_READY_URL: http://127.0.0.1:8080/api/health
+      TRUSTED: ${{ github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: naiemk/qa-agent
@@ -38,7 +70,10 @@ jobs:
         run: |
           # .qa-agent depends on file:../browser-session-agent, i.e. the checkout above.
           (cd browser-session-agent && npm ci)
-          (cd .qa-agent && npm ci)
+          (cd .qa-agent && npm ci && npx playwright install chromium)
+          mkdir -p magpi-tests
+          test -f magpi-tests/magpi-test.json || cp .qa-agent/examples/onchain-invoice/magpi-test.json magpi-tests/
+          test -d magpi-tests/scenarios || cp -r .qa-agent/examples/onchain-invoice/scenarios magpi-tests/
 
       - name: Start the simulated stack
         run: |
@@ -47,23 +82,72 @@ jobs:
           for i in $(seq 1 300); do curl -sf http://localhost:5173/ >/dev/null && break; sleep 1; done
           curl -sf http://127.0.0.1:8080/api/health
 
-      - name: Run magpi-test
+      - name: Replay accepted specs (no AI)
+        id: replay
+        continue-on-error: true
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          MAGPI_TEST_BASE_URL: http://localhost:5173
-          MAGPI_TEST_READY_URL: http://127.0.0.1:8080/api/health
-        run: |
-          test -f magpi-tests/magpi-test.json || cp .qa-agent/examples/onchain-invoice/magpi-test.json magpi-tests/
-          test -d magpi-tests/scenarios || cp -r .qa-agent/examples/onchain-invoice/scenarios magpi-tests/
-          node .qa-agent/bin/magpi-test.mjs run --target . --max-minutes "${{ inputs.max_minutes }}" --max-usd 2
-
-      - name: Replay accepted specs with no provider key
-        if: always()
-        env:
-          MAGPI_TEST_BASE_URL: http://localhost:5173
+          OPENROUTER_API_KEY: ""
         run: |
           if ls magpi-tests/specs/*.spec.ts >/dev/null 2>&1; then
             npx playwright test --config magpi-tests/playwright.config.ts --retries=0
+          else
+            echo "No accepted specs yet."
+          fi
+
+      - name: Run magpi-test
+        if: env.TRUSTED == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MAX_USD: ${{ github.event_name == 'pull_request' && '0.25' || inputs.max_usd }}
+          MAX_MINUTES: ${{ github.event_name == 'pull_request' && '20' || inputs.max_minutes }}
+        run: |
+          code=0
+          node .qa-agent/bin/magpi-test.mjs run --target . --max-usd "$MAX_USD" --max-minutes "$MAX_MINUTES" || code=$?
+          # 4 means the budget was spent; partial results are still written.
+          if [ "$code" -ne 0 ] && [ "$code" -ne 4 ]; then exit "$code"; fi
+
+      - name: Impact of this PR
+        if: github.event_name == 'pull_request' && hashFiles('magpi-tests/state/app-map.json') != ''
+        run: node .qa-agent/bin/magpi-test.mjs impact --target . --base "origin/${{ github.base_ref }}" | tee magpi-tests/state/impact.txt
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            if [ -f magpi-tests/state/report.md ]; then cat magpi-tests/state/report.md; else echo "No report."; fi
+            if [ -f magpi-tests/state/impact.txt ]; then printf '\n## Impact\n\n```\n'; cat magpi-tests/state/impact.txt; printf '```\n'; fi
+            printf '\nReplay of accepted specs (no AI): %s\n' "${{ steps.replay.outcome }}"
+          } > "$RUNNER_TEMP/summary.md"
+          cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the PR
+        if: always() && github.event_name == 'pull_request' && env.TRUSTED == 'true'
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file "$RUNNER_TEMP/summary.md" --edit-last \
+            || gh pr comment "${{ github.event.pull_request.number }}" --body-file "$RUNNER_TEMP/summary.md"
+
+      - name: Open a PR with new tests and state
+        if: env.TRUSTED == 'true'
+        run: |
+          rm -f magpi-tests/state/impact.txt
+          git add magpi-tests
+          # The report and run records change every run; open a PR only for real changes.
+          if git diff --cached --quiet -- magpi-tests/specs magpi-tests/scenarios magpi-tests/manual \
+               magpi-tests/qa-brief.md magpi-tests/state/scenarios magpi-tests/state/app-map.json; then
+            echo "No new or changed tests."; exit 0
+          fi
+          base="${{ github.head_ref || github.ref_name }}"
+          branch="magpi-test/${base}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -q -m "magpi-test: tests and state from run ${{ github.run_id }}"
+          # One rolling branch and PR per base branch, updated by each run.
+          git push -q -f origin "$branch"
+          if [ "$(gh pr list --head "$branch" --base "$base" --state open --json number -q length)" = "0" ]; then
+            gh pr create --base "$base" --head "$branch" \
+              --title "magpi-test: UI tests for ${base}" \
+              --body "Generated by the QA agent: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Every spec in magpi-tests/specs/ passed 3 times in a row with no AI. Review magpi-tests/manual/ and magpi-tests/qa-brief.md."
           fi
 
       - uses: actions/upload-artifact@v4
@@ -73,3 +157,9 @@ jobs:
           path: |
             magpi-tests/
             !magpi-tests/state/magpi-home/
+
+      - name: Fail if accepted specs regressed
+        if: steps.replay.outcome == 'failure'
+        run: |
+          echo "An accepted UI spec failed on replay (no AI). See the Playwright report in the artifact." >&2
+          exit 1

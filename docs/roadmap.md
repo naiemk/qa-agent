@@ -78,8 +78,15 @@ must fit in the two days.
 > magpi-integration.md corrections, 2026-10-21) and QD22 (`--max-usd`).
 
 - [ ] `magpi-test discover` on onchain-invoice writes an app map with areas and ranked critical paths, without reading answer-key files (MT-3.3, MT-1.2 guard test).
-- [ ] At least 3 guided scenarios become accepted specs (MT-7.2).
+- [x] At least 3 guided scenarios become accepted specs (MT-7.2).
+  > 2026-10-27: `create-pay-link`, `invalid-merchant-wallet`, `broken-pay-link-recovery`.
 - [ ] At least 5 explored specs accepted, from at least 2 lenses, including at least one edge case (validation error, empty state, or invalid link) (MT-7.3).
+  > 2026-10-27: 2 of 5 (security checks, security risks; lenses happy and deep; no edge
+  > case yet). Grounding (QD23) took explore from 0/9 to 2/9 and now stops bad drafts
+  > before Magpi spend; the rest fail because the drafter must guess an action's outcome
+  > before any run ("Create invoice" opens a dialog, not `/pay`). Next lever: a scout run
+  > whose observations ground the criteria (MT-5.2/5.3). Guided edge cases cover the
+  > validation and invalid-link checks meanwhile.
 - [ ] Explore passes went through Magpi's planner/coach path, visible in the goal artifacts (`strategyArtifact` fact or recorded classification `known_flow`) (MT-2.3).
 - [ ] All accepted specs pass `--repeat-each=3 --retries=0` from a fresh stack, and the no-AI guard passes (MT-6.3, MT-6.5).
 - [ ] `magpi-test run` succeeds inside the onchain-invoice QA CI job against the URL the job provides, without starting any server (MT-7.5).
