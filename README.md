@@ -38,6 +38,47 @@ The target needs `magpi-tests/magpi-test.json` (see
 re-run, and areas to re-explore. The onchain-invoice setup (stack script, manifest, CI
 workflow) is in [examples/onchain-invoice/](examples/onchain-invoice/).
 
+## Going live on Trustless Commerce (status 2026-10-27)
+
+Proven locally: 5 accepted specs (3 guided, 2 explored) pass 15/15 replays with plain
+`npx playwright test`, no AI. The GitHub workflow has **not run yet**.
+
+Steps:
+
+1. Merge qa-agent PR #6 (the workflow checks out qa-agent `main`).
+2. In TC, from a clean branch off `main`, add:
+   - `.github/workflows/qa-agent.yml`, copied from
+     [examples/onchain-invoice/qa-agent.yml](examples/onchain-invoice/qa-agent.yml);
+   - `magpi-tests/` from `~/nk/trustless-commerce/magpi-tests/` (specs, scenarios,
+     state, `.gitignore`; about 91 files, its `.gitignore` keeps logs and Magpi homes out).
+     It was generated on branch `identity-recovery-pathways`; first run
+     `npx playwright test --config magpi-tests/playwright.config.ts` against a stack
+     started from `main` (`examples/onchain-invoice/start-stack.sh`) and drop any spec
+     that fails there.
+3. TC repo settings: add secret `OPENROUTER_API_KEY`; enable Settings → Actions →
+   General → "Allow GitHub Actions to create and approve pull requests".
+4. On OpenRouter, put a spend limit on that key (it has none).
+5. Actions → QA agent → Run workflow (default cap $1). Then open a small PR touching
+   `ui/` to see the PR path: replay gate, a $0.25 run, a report comment, and a
+   `magpi-test/<branch>` follow-up PR if tests changed.
+
+Will it work once done? The replay gate and the run are the same commands that work
+locally, so they very likely do. Expect one or two fix-ups on the first GitHub run, in
+this order of likelihood:
+
+- **Stack start on Ubuntu**: `start-stack.sh` (Hardhat, `boot.mjs`, Vite) has only run
+  on macOS. Check `magpi-tests/state/logs/stack.log` in the artifact.
+- **Node 24**: TC's own CI uses Node 22; this job runs `npm ci` on 24. Should be fine
+  (`better-sqlite3` builds for 24) but unverified there.
+- **Write-back**: the `magpi-test/<branch>` push and `gh pr create` need step 3's
+  setting; the diff gate was tested in a scratch repo only.
+- **Explore yield**: on TC about 2 of 9 explore passes become tests; the drafter guesses
+  what an action does before seeing it. Fix planned as a scout run (MT-5.2/5.3). Guided
+  scenarios in `magpi-tests/scenarios/*.md` are the reliable way to add coverage.
+
+Spend so far on TC: about $0.49. Product bugs found are in
+[docs/specs/onchain-invoice.md](docs/specs/onchain-invoice.md).
+
 ## Development
 
 `npm run precommit` (typecheck + unit and integration tests). Tests never call a model:
